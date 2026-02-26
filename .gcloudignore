@@ -1,0 +1,14 @@
+# Ignorar durante el despliegue en Cloud Run
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules
+.astro
+README.md
+.vscode
+*.log
+.DS_Store
+src/
+public/

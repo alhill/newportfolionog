@@ -1,0 +1,937 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { marked } from 'marked';
+
+const { id } = Astro.params;
+
+// Obtener el proyecto completo
+const response = await fetch(`${Astro.url.origin}/api/projects/${id}`);
+const projectData = await response.json();
+
+if (!projectData.success) {
+  return Astro.redirect('/');
+}
+
+const project = projectData.data;
+const toText = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+const cliente = toText(project.cliente);
+const campaña = toText(project.campaña);
+const agencia = toText(project.agencia);
+const papel = toText(project.papel);
+const copy = toText(project.copy);
+const arte = toText(project.arte);
+const description = toText(project.description);
+const descriptionHtml = description ? marked.parse(`**DESCRIPCIÓN:** ${description}`) : '';
+---
+
+<Layout title={`${project.innerTitle || project.title} | Srta.Nognog`}>
+  <article class="project-detail">
+    <!-- <header class="project-header">
+      <img src={project.headerImg} alt={project.title} class="header-image" />
+      <div class="header-overlay">
+        <div class="header-content">
+          <span class="category-badge">{project.category}</span>
+        </div>
+      </div>
+    </header> -->
+    <div class="project-container">
+      <h1>{project.innerTitle || project.title}</h1>
+
+      {cliente && (
+        <div class="info-section">
+          <p><strong>CLIENTE:</strong> {cliente}</p>
+        </div>
+      )}
+
+      {campaña && (
+        <div class="info-section">
+          <p><strong>CAMPAÑA:</strong> {campaña}</p>
+        </div>
+      )}
+
+      {agencia && (
+        <div class="info-section">
+          <p><strong>AGENCIA:</strong> {agencia}</p>
+        </div>
+      )}
+
+      {papel && (
+        <div class="info-section">
+          <p><strong>PAPEL:</strong> {papel}</p>
+        </div>
+      )}
+
+      {copy && (
+        <div class="info-section">
+          <p><strong>COPY:</strong> {copy}</p>
+        </div>
+      )}
+
+      {arte && (
+        <div class="info-section">
+          <p><strong>ARTE:</strong> {arte}</p>
+        </div>
+      )}
+
+      {description && (
+        <div class="info-section">
+          <div class="markdown-content" set:html={descriptionHtml}></div>
+        </div>
+      )}
+
+      <main class="project-main">
+
+        {project.media && project.media.length > 0 && (
+          <section class="content-section">
+            <div class="content-grid">
+              {project.media.map((item: any) => (
+                <div class={`content-item content-${item.type} width-${item.width || 'full'}`}>
+                  {item.type === 'image' && (
+                    <figure>
+                      <img src={item.uri} alt={item.caption || ''} loading="lazy" />
+                      {item.caption && <figcaption>{item.caption}</figcaption>}
+                    </figure>
+                  )}
+                  
+                  {item.type === 'gallery' && (
+                    <div class="gallery-container" data-gallery={JSON.stringify(item.images)}>
+                      <div class="gallery-viewer">
+                        <button class="gallery-nav gallery-nav-prev" aria-label="Imagen anterior">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                          </svg>
+                        </button>
+                        <img src={item.images[0]} alt="" loading="lazy" class="gallery-current-image" />
+                        <button class="gallery-nav gallery-nav-next" aria-label="Siguiente imagen">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        </button>
+                      </div>
+                      {item.caption && <figcaption>{item.caption}</figcaption>}
+                    </div>
+                  )}
+                  
+                  {item.type === 'video' && (
+                    <figure>
+                      <div class="video-container" set:html={item.uri.includes('<iframe') ? item.uri : `<iframe src="${item.uri}" frameborder="0" allowfullscreen></iframe>`}></div>
+                      {item.caption && <figcaption>{item.caption}</figcaption>}
+                    </figure>
+                  )}
+                  
+                  {item.type === 'embed' && (
+                    <figure>
+                      {item.uri.includes('tiktok') ? (
+                        <div class="tiktok-wrapper" set:html={item.uri.includes('<blockquote') || item.uri.includes('<iframe') ? item.uri : `<iframe src="${item.uri}" frameborder="0" height="700" allowfullscreen></iframe>`}></div>
+                      ) : (
+                        <div class="embed-container" set:html={item.uri.includes('<iframe') || item.uri.includes('<blockquote') ? item.uri : `<iframe src="${item.uri}" frameborder="0" allowfullscreen></iframe>`}></div>
+                      )}
+                      {item.caption && <figcaption>{item.caption}</figcaption>}
+                    </figure>
+                  )}
+                  
+                  {item.type === 'pdf' && (
+                    <figure>
+                      <div class="pdf-container">
+                        <iframe src={item.uri} frameborder="0"></iframe>
+                      </div>
+                      {item.caption && <figcaption>{item.caption}</figcaption>}
+                    </figure>
+                  )}
+
+                  {item.type === 'markdown' && (
+                    <div class="markdown-inline" set:html={marked.parse(item.uri || '')}></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div class="project-actions">
+          <a href="/" class="btn-back">← Volver al inicio</a>
+        </div>
+      </main>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .project-detail {
+    min-height: 100vh;
+  }
+
+  .project-header {
+    position: relative;
+    height: 60vh;
+    min-height: 400px;
+    overflow: hidden;
+  }
+
+  .header-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .header-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 3rem 2rem;
+  }
+
+  .header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .category-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  .header-content h1 {
+    color: white;
+    font-size: 3.5rem;
+    margin: 0;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+
+  .project-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .project-container h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #666;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+  }
+
+  .project-info {
+    height: fit-content;
+  }
+  
+  .info-section {
+    display: flex;
+    align-items: center;
+  }
+
+  .info-section:last-child {
+    border-bottom: none;
+  }
+
+  .info-section h3 {
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .info-section p {
+    font-size: 1.1rem;
+    line-height: 2rem;
+    color: #666;
+    margin: 0;
+    font-weight: 300;
+  }
+
+  .info-section p strong{
+    font-weight: 700;
+    color: #666;
+  }
+
+  .project-main {
+    min-width: 0;
+  }
+
+  .description {
+    margin-bottom: 4rem;
+  }
+
+  .description h2 {
+    font-size: 2rem;
+    margin: 0 0 1.5rem 0;
+    color: #333;
+  }
+
+  .markdown-content {
+    font-size: 1.1rem;
+    line-height: 2rem;
+    color: #666;
+    font-weight: 300;
+  }
+
+  .markdown-content :global(h1),
+  .markdown-content :global(h2),
+  .markdown-content :global(h3) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #666;
+  }
+
+  .markdown-content :global(p) {
+    margin-top: 0;
+    margin-bottom: 2rem;
+  }
+
+  .markdown-content :global(strong) {
+    font-weight: 700;
+    color: #666;
+  }
+
+  .markdown-content :global(em) {
+    font-style: italic;
+  }
+
+  .markdown-content :global(a) {
+    color: #667eea;
+    text-decoration: underline;
+  }
+
+  .markdown-content :global(ul),
+  .markdown-content :global(ol) {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+  }
+
+  .markdown-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .media-gallery {
+    margin-bottom: 4rem;
+  }
+
+  .media-gallery h2 {
+    font-size: 2rem;
+    margin: 0 0 2rem 0;
+    color: #333;
+  }
+
+  /* Nuevo sistema de contenido flexible */
+  .content-section {
+    margin: 4rem 0;
+  }
+
+  .content-section h2 {
+    font-size: 2rem;
+    margin: 0 0 2rem 0;
+    color: #333;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .content-item {
+    border-radius: 0;
+    overflow: hidden;
+    background: #f8f9fa;
+  }
+
+  .content-item.content-markdown {
+    background: transparent;
+  }
+
+  .content-item.content-video,
+  .content-item.content-embed,
+  .content-item.content-pdf {
+    background: transparent;
+    overflow: visible;
+  }
+
+  .content-item.width-full {
+    grid-column: span 2;
+  }
+
+  .content-item.width-half {
+    grid-column: span 1;
+  }
+
+  .content-item figure {
+    margin: 0;
+  }
+
+  .content-item img {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: contain;
+    display: block;
+  }
+
+  .content-item figcaption {
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+    background: transparent;
+  }
+
+  /* Gallery específico */
+  .gallery-container {
+    background: #fff;
+  }
+
+  .gallery-viewer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    max-height: 90vh;
+    background: #000;
+  }
+
+  .gallery-current-image {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: contain;
+    display: block;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .gallery-nav {
+    position: absolute;
+    background: none;
+    border: none;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    z-index: 10;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+
+  .gallery-nav:hover {
+    transform: scale(1.2);
+  }
+
+  .gallery-nav:active {
+    transform: scale(0.9);
+  }
+
+  .gallery-nav-prev {
+    left: 1rem;
+  }
+
+  .gallery-nav-next {
+    right: 1rem;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox.active {
+    display: flex;
+  }
+
+  .lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background: none;
+    border: none;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    z-index: 10000;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+  }
+
+  .lightbox-close:hover {
+    transform: scale(1.2);
+  }
+
+  .lightbox-nav {
+    position: absolute;
+    background: none;
+    border: none;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    z-index: 10000;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+  }
+
+  .lightbox-nav:hover {
+    transform: scale(1.2);
+  }
+
+  .lightbox-nav:active {
+    transform: scale(0.9);
+  }
+
+  .lightbox-nav-prev {
+    left: 2rem;
+  }
+
+  .lightbox-nav-next {
+    right: 2rem;
+  }
+
+  /* Video container */
+  .video-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 */
+    overflow: visible;
+    background: transparent;
+  }
+
+  .content-item.width-full .video-container {
+    padding-bottom: 56.25%;
+  }
+
+  .video-container :global(iframe) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    background: transparent;
+  }
+
+  /* Embed container */
+  .embed-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .content-item.width-full .embed-container {
+    padding-bottom: 56.25%;
+  }
+
+  .embed-container :global(iframe),
+  .embed-container :global(blockquote) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    background: transparent;
+  }
+
+  /* TikTok wrapper — portrait, sin truco 16:9 */
+  .tiktok-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .tiktok-wrapper :global(iframe) {
+    width: 340px;
+    border: none;
+  }
+
+  /* PDF container */
+  .pdf-container {
+    width: 100%;
+    height: 600px;
+    background: transparent;
+  }
+
+  .pdf-container iframe {
+    width: 100%;
+    height: 100%;
+  }
+
+  .media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .media-item {
+    border-radius: 0;
+    overflow: hidden;
+    background: #f8f9fa;
+  }
+
+  .media-item img,
+  .media-item video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .media-item audio {
+    width: 100%;
+  }
+
+  /* Layout classes */
+  .media-item.two-columns {
+    grid-column: span 2;
+  }
+
+  .media-item.max-height-500 img,
+  .media-item.max-height-500 video {
+    max-height: 500px;
+    object-fit: cover;
+  }
+
+  .project-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 4rem;
+    padding-top: 2rem;
+  }
+
+  .btn-back {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #00deff;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 0;
+    font-weight: 500;
+    transition: background 0.3s;
+  }
+
+  .btn-back:hover {
+    background: #5568d3;
+  }
+
+  @media (max-width: 968px) {
+    .project-container {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .project-info {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .info-section {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .header-content h1 {
+      font-size: 2rem;
+    }
+
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .content-item.width-full,
+    .content-item.width-half {
+      grid-column: span 1;
+    }
+
+    .gallery-nav {
+      width: 36px;
+      height: 36px;
+    }
+
+    .gallery-nav svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .gallery-nav-prev {
+      left: 0.5rem;
+    }
+
+    .gallery-nav-next {
+      right: 0.5rem;
+    }
+
+    .lightbox-close {
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+    }
+
+    .lightbox-close svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .lightbox-nav {
+      width: 48px;
+      height: 48px;
+    }
+
+    .lightbox-nav svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .lightbox-nav-prev {
+      left: 1rem;
+    }
+
+    .lightbox-nav-next {
+      right: 1rem;
+    }
+
+    .pdf-container {
+      height: 400px;
+    }
+
+    .media-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .media-item.two-columns {
+      grid-column: span 1;
+    }
+
+  }
+</style>
+
+<!-- Lightbox HTML -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <div class="lightbox-content">
+    <button class="lightbox-nav lightbox-nav-prev" id="lightbox-prev" aria-label="Imagen anterior">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <img src="" alt="" class="lightbox-image" id="lightbox-image" />
+    <button class="lightbox-nav lightbox-nav-next" id="lightbox-next" aria-label="Siguiente imagen">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script is:inline>
+  // Gallery navigation and lightbox functionality
+  class GalleryManager {
+    constructor(container) {
+      this.container = container;
+      this.images = JSON.parse(container.getAttribute('data-gallery') || '[]');
+      this.currentIndex = 0;
+      this.imageElement = container.querySelector('.gallery-current-image');
+      this.prevButton = container.querySelector('.gallery-nav-prev');
+      this.nextButton = container.querySelector('.gallery-nav-next');
+      
+      this.init();
+    }
+
+    init() {
+      if (this.images.length <= 1) {
+        this.prevButton.style.display = 'none';
+        this.nextButton.style.display = 'none';
+      }
+
+      this.prevButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.prev();
+      });
+
+      this.nextButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.next();
+      });
+
+      this.imageElement.addEventListener('click', () => {
+        this.openLightbox();
+      });
+    }
+
+    prev() {
+      this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+      this.updateImage();
+    }
+
+    next() {
+      this.currentIndex = (this.currentIndex + 1) % this.images.length;
+      this.updateImage();
+    }
+
+    updateImage() {
+      const newSrc = this.images[this.currentIndex];
+
+      // Esperar tanto al fade-out como a la precarga antes de hacer el swap
+      const fadeOutDone = new Promise(resolve => {
+        const onEnd = () => {
+          this.imageElement.removeEventListener('transitionend', onEnd);
+          resolve();
+        };
+        this.imageElement.addEventListener('transitionend', onEnd);
+        this.imageElement.style.opacity = '0';
+      });
+
+      const imageLoaded = new Promise(resolve => {
+        const preload = new Image();
+        preload.onload = resolve;
+        preload.onerror = resolve;
+        preload.src = newSrc;
+      });
+
+      Promise.all([fadeOutDone, imageLoaded]).then(() => {
+        this.imageElement.src = newSrc;
+        this.imageElement.style.opacity = '1';
+      });
+    }
+
+    openLightbox() {
+      const lightbox = new Lightbox(this.images, this.currentIndex);
+      lightbox.open();
+    }
+  }
+
+  class Lightbox {
+    constructor(images, startIndex = 0) {
+      this.images = images;
+      this.currentIndex = startIndex;
+      this.lightbox = document.getElementById('lightbox');
+      this.imageElement = document.getElementById('lightbox-image');
+      this.closeButton = document.getElementById('lightbox-close');
+      this.prevButton = document.getElementById('lightbox-prev');
+      this.nextButton = document.getElementById('lightbox-next');
+      
+      this.init();
+    }
+
+    init() {
+      this.closeButton.addEventListener('click', () => this.close());
+      this.lightbox.addEventListener('click', (e) => {
+        if (e.target === this.lightbox) {
+          this.close();
+        }
+      });
+
+      this.prevButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.prev();
+      });
+
+      this.nextButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.next();
+      });
+
+      // Keyboard navigation
+      this.keyHandler = (e) => {
+        if (e.key === 'Escape') this.close();
+        if (e.key === 'ArrowLeft') this.prev();
+        if (e.key === 'ArrowRight') this.next();
+      };
+
+      document.addEventListener('keydown', this.keyHandler);
+    }
+
+    open() {
+      this.lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      this.updateImage();
+    }
+
+    close() {
+      this.lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', this.keyHandler);
+    }
+
+    prev() {
+      this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length;
+      this.updateImage();
+    }
+
+    next() {
+      this.currentIndex = (this.currentIndex + 1) % this.images.length;
+      this.updateImage();
+    }
+
+    updateImage() {
+      this.imageElement.src = this.images[this.currentIndex];
+
+      if (this.images.length <= 1) {
+        this.prevButton.style.display = 'none';
+        this.nextButton.style.display = 'none';
+      }
+    }
+  }
+
+  // Initialize all galleries on the page
+  function initGalleries() {
+    const galleries = document.querySelectorAll('.gallery-container[data-gallery]');
+    galleries.forEach(gallery => new GalleryManager(gallery));
+  }
+
+  // Run on load or immediately if DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGalleries);
+  } else {
+    initGalleries();
+  }
+
+</script>

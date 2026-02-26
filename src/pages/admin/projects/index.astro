@@ -1,0 +1,755 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+
+// El middleware ya verifica la autenticación
+const user = Astro.locals.user;
+
+// Obtener proyectos
+let projects = [];
+let error = null;
+
+try {
+  const response = await fetch(`${Astro.url.origin}/api/projects?limit=100`);
+  const projectsData = await response.json();
+  
+  if (projectsData.success) {
+    projects = projectsData.data;
+  } else {
+    error = projectsData.error;
+  }
+} catch (e) {
+  error = (e as Error).message;
+}
+---
+
+<Layout title="Gestionar Proyectos - Admin">
+	<div class="admin-layout">
+		<AdminSidebar currentPage="projects" user={user} />
+
+		<!-- Contenido principal -->
+		<main class="main-content">
+			<div class="content-header">
+				<h1>Gestión de Proyectos</h1>
+				<a href="/admin/projects/new" class="btn btn-primary">+ Nuevo Proyecto</a>
+			</div>
+
+			{error && (
+				<div class="error-message">
+					<p>⚠️ Error al cargar proyectos: {error}</p>
+				</div>
+			)}
+
+			<section class="projects-grid-admin">
+				{projects.length === 0 ? (
+					<p class="empty">No hay proyectos disponibles</p>
+				) : (
+					projects.map((project: any) => (
+						<article 
+							class="project-card-admin" 
+							data-width={project.width || 1} 
+							data-height={project.height || 1} 
+							data-id={project.id}
+							data-order={project.order || 0}
+							draggable="true"
+						>
+							<div class="project-preview" style={`background-image: url(${project.thumb})`}>
+								<div class="overlay"></div>
+								<div class="card-actions">
+									<button class="card-btn btn-layout-light" title="Configurar layout" draggable="false">
+										<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<rect x="3" y="3" width="7" height="7"></rect>
+											<rect x="14" y="3" width="7" height="7"></rect>
+											<rect x="14" y="14" width="7" height="7"></rect>
+											<rect x="3" y="14" width="7" height="7"></rect>
+										</svg>
+									</button>
+									<a class="card-btn btn-layout-light" href={`/admin/projects/${project.id}`} title="Editar proyecto" draggable="false">
+										<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+											<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+										</svg>
+									</a>
+								</div>
+								<h2 class="project-title">{project.title}</h2>
+							</div>
+						</article>
+					))
+				)}
+			</section>
+		</main>
+	</div>
+
+	<!-- Modal para editar propiedades de layout -->
+	<div id="layoutModal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 id="modalTitle">Configurar Layout</h2>
+				<button id="closeModal" class="close-btn">×</button>
+			</div>
+			<div class="modal-body">
+				<div class="form-group">
+					<label>Anchura (columnas)</label>
+					<div class="button-group">
+						<button class="width-btn" data-width="1">1</button>
+						<button class="width-btn" data-width="2">2</button>
+						<button class="width-btn" data-width="3">3</button>
+						<button class="width-btn" data-width="4">4</button>
+						<button class="width-btn" data-width="5">5</button>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label>Altura (filas)</label>
+					<div class="button-group">
+						<button class="height-btn" data-height="1">1</button>
+						<button class="height-btn" data-height="2">2</button>
+					</div>
+				</div>
+
+				<div class="modal-actions">
+					<button id="saveLayout" class="btn btn-primary">Guardar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</Layout>
+
+<script>
+  import { auth } from '../../../lib/firebase-client';
+
+  let currentProjectId: string | null = null;
+  let currentWidth = 1;
+  let currentHeight = 1;
+  let allProjects: any[] = [];
+  let draggedElement: HTMLElement | null = null;
+
+  const modal = document.getElementById('layoutModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const closeModalBtn = document.getElementById('closeModal');
+  const saveLayoutBtn = document.getElementById('saveLayout');
+
+  // Cargar todos los proyectos al inicio
+  async function loadAllProjects() {
+    try {
+      const response = await fetch('/api/projects?limit=100');
+      const data = await response.json();
+      if (data.success) {
+        allProjects = data.data;
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  }
+
+  loadAllProjects();
+
+  // Abrir modal al hacer click en botón de layout
+  document.querySelectorAll('.layout-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = (btn as HTMLElement).closest('.project-card-admin');
+      if (!card) return;
+      currentProjectId = card.getAttribute('data-id');
+      currentWidth = parseInt(card.getAttribute('data-width') || '1');
+      currentHeight = parseInt(card.getAttribute('data-height') || '1');
+
+      const project = allProjects.find(p => p.id === currentProjectId);
+      if (modalTitle && project) {
+        modalTitle.textContent = `Configurar layout de ${project.title}`;
+      }
+
+      document.querySelectorAll('.width-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-width') === currentWidth.toString());
+      });
+      document.querySelectorAll('.height-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-height') === currentHeight.toString());
+      });
+
+      modal?.classList.add('show');
+    });
+  });
+
+  // Evitar que el click en el botón editar dispare el drag
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  // Cerrar modal
+  closeModalBtn?.addEventListener('click', () => {
+    modal?.classList.remove('show');
+    currentProjectId = null;
+  });
+
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('show');
+      currentProjectId = null;
+    }
+  });
+
+  // Seleccionar anchura
+  document.querySelectorAll('.width-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.width-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentWidth = parseInt(btn.getAttribute('data-width') || '1');
+    });
+  });
+
+  // Seleccionar altura
+  document.querySelectorAll('.height-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.height-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentHeight = parseInt(btn.getAttribute('data-height') || '1');
+    });
+  });
+
+  // Guardar layout
+  saveLayoutBtn?.addEventListener('click', () => {
+    if (!currentProjectId) return;
+    void saveChanges({ id: currentProjectId, width: currentWidth, height: currentHeight });
+  });
+
+
+
+	function applyLayoutToCard(projectId: string, width: number, height: number) {
+		const card = document.querySelector(`.project-card-admin[data-id="${projectId}"]`) as HTMLElement | null;
+		if (!card) return;
+		card.setAttribute('data-width', width.toString());
+		card.setAttribute('data-height', height.toString());
+	}
+
+	function applyLayoutToState(projectId: string, width: number, height: number) {
+		allProjects = allProjects.map(project =>
+			project.id === projectId
+				? { ...project, width, height }
+				: project
+		);
+	}
+
+	async function saveChanges(snapshot: { id: string; width: number; height: number }) {
+		const btn = saveLayoutBtn as HTMLButtonElement | null;
+		if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const token = await user.getIdToken();
+			const response = await fetch(`/api/projects/${snapshot.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+					width: snapshot.width,
+					height: snapshot.height
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+				applyLayoutToCard(snapshot.id, snapshot.width, snapshot.height);
+				applyLayoutToState(snapshot.id, snapshot.width, snapshot.height);
+        modal?.classList.remove('show');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+		} finally {
+			if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+    }
+  }
+
+  // Drag and Drop functionality
+  document.querySelectorAll('.project-card-admin').forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggedElement = card as HTMLElement;
+      card.classList.add('dragging');
+    });
+
+    card.addEventListener('dragend', (e) => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    card.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      if (card !== draggedElement) {
+        card.classList.add('drag-over');
+      }
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      
+      if (!draggedElement || draggedElement === card) return;
+
+      const draggedId = draggedElement.getAttribute('data-id');
+      const targetId = card.getAttribute('data-id');
+      const draggedOrder = parseInt(draggedElement.getAttribute('data-order') || '0');
+      const targetOrder = parseInt(card.getAttribute('data-order') || '0');
+
+      if (!draggedId || !targetId) return;
+
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const token = await user.getIdToken();
+
+        // Swap orders
+        await Promise.all([
+          fetch(`/api/projects/${draggedId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ order: targetOrder })
+          }),
+          fetch(`/api/projects/${targetId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ order: draggedOrder })
+          })
+        ]);
+
+        window.location.reload();
+      } catch (error) {
+        console.error('Error swapping orders:', error);
+      }
+    });
+  });
+
+</script>
+
+<style>
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	.admin-layout {
+		display: grid;
+		grid-template-columns: 280px 1fr;
+		min-height: 100vh;
+		background: #f5f7fa;
+		width: 100%;
+		position: relative;
+		margin: 0;
+		padding: 0;
+	}
+
+	/* Contenido principal */
+	.main-content {
+		padding: 2rem;
+		grid-column: 2;
+		min-height: 100vh;
+		position: relative;
+	}
+
+	.content-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2rem;
+	}
+
+	.content-header h1 {
+		font-size: 2rem;
+		color: #1e293b;
+		font-weight: 700;
+	}
+
+	.btn {
+		padding: 0.75rem 1.5rem;
+		border: none;
+		border-radius: 8px;
+		font-size: 1rem;
+		cursor: pointer;
+		text-decoration: none;
+		display: inline-block;
+		transition: all 0.2s;
+		font-weight: 500;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	.error-message {
+		background: #fff3cd;
+		border: 1px solid #ffc107;
+		border-radius: 12px;
+		padding: 1.5rem;
+		margin-bottom: 2rem;
+	}
+
+	.drag-info {
+		background: white;
+		border-left: 4px solid #667eea;
+		border-radius: 8px;
+		padding: 1rem 1.5rem;
+		margin-bottom: 2rem;
+		color: #475569;
+		font-size: 0.9375rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.projects-grid-admin {
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		grid-auto-rows: 200px;
+		grid-auto-flow: dense;
+		gap: 20px;
+		margin-bottom: 4rem;
+	}
+
+	.project-card-admin {
+		overflow: hidden;
+		cursor: grab;
+		transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+	}
+
+	.project-card-admin:active {
+		cursor: grabbing;
+	}
+
+	.project-card-admin.dragging {
+		opacity: 0.5;
+		cursor: grabbing;
+	}
+
+	.project-card-admin.drag-over {
+		border-color: #667eea;
+		transform: scale(1.01);
+		box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+	}
+
+	.project-card-admin:hover {
+		transform: scale(1.02);
+		box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+	}
+
+	.project-card-admin[data-width="1"] {
+		grid-column: span 1;
+	}
+
+	.project-card-admin[data-width="2"] {
+		grid-column: span 2;
+	}
+
+	.project-card-admin[data-width="3"] {
+		grid-column: span 3;
+	}
+
+	.project-card-admin[data-width="4"] {
+		grid-column: span 4;
+	}
+
+	.project-card-admin[data-width="5"] {
+		grid-column: span 5;
+	}
+
+	.project-card-admin[data-height="1"] {
+		grid-row: span 1;
+	}
+
+	.project-card-admin[data-height="2"] {
+		grid-row: span 2;
+	}
+
+	.project-preview {
+		width: 100%;
+		height: 100%;
+		background-size: cover;
+		background-position: center;
+		position: relative;
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+	}
+
+	.project-preview .overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.3);
+		z-index: 1;
+		transition: background 0.3s ease;
+	}
+
+	.card-actions {
+		position: absolute;
+		top: 0.6rem;
+		right: 0.6rem;
+		display: flex;
+		gap: 0.35rem;
+		z-index: 3;
+		opacity: 0;
+		transition: opacity 0.2s ease;
+	}
+
+	.project-card-admin:hover .card-actions {
+		opacity: 1;
+	}
+
+	.card-btn {
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.55);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
+		color: white;
+		border: 1px solid rgba(255,255,255,0.15);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: background 0.2s;
+		text-decoration: none;
+		flex-shrink: 0;
+	}
+
+	.card-btn:hover {
+		background: rgba(102, 126, 234, 0.9);
+	}
+
+	.project-card-admin:hover .overlay {
+		background: rgba(0, 0, 0, 0.5);
+	}
+
+	.project-title {
+		margin: 0;
+		font-size: 22px;
+		font-weight: 400;
+		color: white;
+		position: relative;
+		z-index: 2;
+	}
+
+	.empty {
+		grid-column: 1 / -1;
+		text-align: center;
+		padding: 4rem;
+		color: #94a3b8;
+		background: white;
+		border-radius: 12px;
+	}
+
+	/* Modal */
+	.modal {
+		display: none;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.7);
+		z-index: 1000;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.modal.show {
+		display: flex;
+	}
+
+	.modal-content {
+		background: white;
+		border-radius: 12px;
+		width: 90%;
+		max-width: 500px;
+		max-height: 90vh;
+		overflow-y: auto;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+	}
+
+	.modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem;
+		border-bottom: 1px solid #e2e8f0;
+	}
+
+	.modal-header h2 {
+		margin: 0;
+		color: #1e293b;
+		font-size: 1.25rem;
+	}
+
+	.close-btn {
+		background: none;
+		border: none;
+		font-size: 2rem;
+		cursor: pointer;
+		color: #94a3b8;
+		line-height: 1;
+		padding: 0;
+		width: 30px;
+		height: 30px;
+		transition: color 0.2s;
+	}
+
+	.close-btn:hover {
+		color: #1e293b;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+
+	.form-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 0.75rem;
+		font-weight: 600;
+		color: #475569;
+		font-size: 0.9375rem;
+	}
+
+	.button-group {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.width-btn,
+	.height-btn {
+		flex: 1;
+		padding: 0.875rem;
+		border: 2px solid #e2e8f0;
+		background: white;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s;
+		font-size: 1rem;
+		font-weight: 500;
+		color: #475569;
+	}
+
+	.width-btn:hover,
+	.height-btn:hover {
+		border-color: #667eea;
+		background: #f8f9ff;
+	}
+
+	.width-btn.active,
+	.height-btn.active {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		border-color: #667eea;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid #e2e8f0;
+	}
+
+	/* Responsive */
+	@media (max-width: 1024px) {
+		.projects-grid-admin {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		.project-card-admin[data-width="5"] {
+			grid-column: span 4;
+		}
+
+	}
+
+	@media (max-width: 900px) {
+		.projects-grid-admin {
+			grid-template-columns: repeat(3, 1fr);
+		}
+		
+		.project-card-admin[data-width="4"] {
+			grid-column: span 3;
+		}
+
+		.project-card-admin[data-width="5"] {
+			grid-column: span 3;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.projects-grid-admin {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		
+		.project-card-admin[data-width="3"],
+		.project-card-admin[data-width="4"],
+		.project-card-admin[data-width="5"] {
+			grid-column: span 2;
+		}
+
+		.content-header {
+			flex-direction: column;
+			gap: 1rem;
+			align-items: flex-start;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.projects-grid-admin {
+			grid-template-columns: 1fr;
+		}
+		
+		.project-card-admin[data-width="2"],
+		.project-card-admin[data-width="3"],
+		.project-card-admin[data-width="4"],
+		.project-card-admin[data-width="5"] {
+			grid-column: span 1;
+		}
+		
+		.project-card-admin[data-height="1"],
+		.project-card-admin[data-height="2"] {
+			grid-row: span 1;
+		}
+
+		.main-content {
+			padding: 1rem;
+		}
+
+		.button-group {
+			flex-wrap: wrap;
+		}
+
+		.width-btn,
+		.height-btn {
+			flex: 1 1 calc(50% - 0.375rem);
+		}
+	}
+</style>

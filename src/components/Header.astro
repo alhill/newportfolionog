@@ -1,0 +1,214 @@
+---
+// Header común para todas las páginas
+---
+
+<header class="site-header">
+  <div class="header-container">
+    <a href="/" class="logo">
+      <img src="https://srtanognog.com/wp-content/uploads/2019/08/srtanognogsolo.png" alt="Logo" />
+    </a>
+
+    <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</header>
+
+<aside id="sideMenu" class="side-menu">
+  <nav class="menu-nav">
+    <a href="/" class="menu-item">Portfolio</a>
+    <a href="/cv" class="menu-item">CV</a>
+    <a href="/about" class="menu-item">Sobre mí</a>
+    <a href="/contact" class="menu-item">Contacto</a>
+  </nav>
+</aside>
+
+<script>
+  const menuToggle = document.getElementById('menuToggle');
+  const sideMenu = document.getElementById('sideMenu');
+
+  function openMenu() {
+    document.body.classList.add('menu-open');
+    menuToggle?.classList.add('active');
+  }
+
+  function closeMenu() {
+    document.body.classList.remove('menu-open');
+    menuToggle?.classList.remove('active');
+  }
+
+  menuToggle?.addEventListener('click', () => {
+    if (document.body.classList.contains('menu-open')) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  });
+
+  // Cerrar menú al hacer click en un enlace
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', closeMenu);
+  });
+
+  // Cerrar menú con tecla Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('menu-open')) {
+      closeMenu();
+    }
+  });
+</script>
+
+<style>
+  :global(body) {
+    overflow-x: hidden;
+    transition: margin 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100vw;
+  }
+
+  :global(body.menu-open) {
+    overflow: hidden;
+    margin-left: -240px;
+  }
+
+  .site-header {
+    /* position: fixed;
+    top: 0;
+    left: 0; */
+    width: 100vw;
+    z-index: 100;
+    transition: margin 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :global(body.menu-open) .site-header {
+    /* margin-left: -240px; */
+  }
+
+  .header-container {
+    /* max-width: 1400px; */
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo img {
+    width: 220px;
+    height: auto;
+    display: block;
+  }
+
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 101;
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: #333;
+    border-radius: 3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+  }
+
+  .menu-toggle:hover span {
+    background: #667eea;
+  }
+
+  /* Animación a X */
+  .menu-toggle.active span:nth-child(1) {
+    transform: translateY(9px) rotate(45deg);
+  }
+
+  .menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .menu-toggle.active span:nth-child(3) {
+    transform: translateY(-9px) rotate(-45deg);
+  }
+
+  .side-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 240px;
+    height: 100vh;
+    background: #1d1d1d;
+    z-index: 102;
+    padding: 34px;
+    padding-top: 34px;
+    transform: translateX(240px);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :global(body.menu-open) .side-menu {
+    transform: translateX(0);
+  }
+
+  .menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: flex-start;
+  }
+
+  .menu-item {
+		color: rgba(255, 255, 255, 0.6);
+		text-decoration: none;
+		font-size: 15px;
+		font-weight: 400;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		transition: all 0.3s ease;
+		position: relative;
+	}
+
+	.menu-item:hover {
+		color: rgba(255, 255, 255, 1);
+  }
+
+  .menu-item::after {
+    content: '→';
+    font-size: 36px;
+    margin-top: -9px;
+    line-height: 1;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+  }
+
+  .menu-item:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  @media (max-width: 768px) {
+    .logo img {
+      width: 150px;
+    }
+
+    .header-container {
+      padding: 0.75rem 1rem;
+    }
+  }
+</style>

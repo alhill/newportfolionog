@@ -1,0 +1,14 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import ProjectCreate from '../../../components/admin/ProjectCreate';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Nuevo Proyecto - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="projects" user={user} />
+    <ProjectCreate client:visible />
+  </div>
+</Layout>

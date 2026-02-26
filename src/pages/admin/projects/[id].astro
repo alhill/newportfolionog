@@ -1,0 +1,15 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import ProjectEdit from '../../../components/admin/ProjectEdit';
+
+const user = Astro.locals.user;
+const { id } = Astro.params;
+---
+
+<Layout title="Editar Proyecto - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="projects" user={user} />
+    <ProjectEdit client:visible id={id} />
+  </div>
+</Layout>

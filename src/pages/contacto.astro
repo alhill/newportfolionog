@@ -1,0 +1,97 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Contacto - Portfolio">
+  <div class="contact-container">
+    <h1>Contacto</h1>
+    <p>¿Tienes un proyecto en mente? ¡Hablemos!</p>
+    
+    <div class="contact-info">
+      <div class="contact-item">
+        <h2>Email</h2>
+        <a href="mailto:hola@portfolio.com">hola@portfolio.com</a>
+      </div>
+      
+      <div class="contact-item">
+        <h2>Redes Sociales</h2>
+        <div class="social-links">
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">TikTok</a>
+          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="https://behance.net" target="_blank" rel="noopener noreferrer">Behance</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .contact-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+
+  p {
+    font-size: 1.25rem;
+    color: #666;
+    margin-bottom: 3rem;
+  }
+
+  .contact-info {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .contact-item h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+
+  .contact-item a {
+    color: #0066ff;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: opacity 0.2s;
+  }
+
+  .contact-item a:hover {
+    opacity: 0.7;
+  }
+
+  .social-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .contact-container {
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+
+    .contact-item h2 {
+      font-size: 1.25rem;
+    }
+
+    .contact-item a {
+      font-size: 1rem;
+    }
+  }
+</style>

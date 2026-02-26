@@ -1,0 +1,14 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import MediaManager from '../../../components/admin/MediaManager';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Gestión de Medios - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="media" user={user} />
+    <MediaManager client:visible />
+  </div>
+</Layout>

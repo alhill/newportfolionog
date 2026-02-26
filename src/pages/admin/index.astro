@@ -1,0 +1,15 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminSidebar from '../../components/admin/AdminSidebar.astro';
+import Dashboard from '../../components/admin/Dashboard';
+
+// El middleware ya verifica la autenticación
+const user = Astro.locals.user;
+---
+
+<Layout title="Admin Dashboard">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="dashboard" user={user} />
+    <Dashboard client:visible />
+  </div>
+</Layout>
