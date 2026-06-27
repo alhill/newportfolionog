@@ -1,0 +1,156 @@
+---
+import contact1 from '../assets/01srtanognog.png';
+import contact2 from '../assets/02srtanognog.png';
+import contact3 from '../assets/03srtanognog.png';
+import wide1 from '../assets/01cabecera-sobremi.jpg';
+import wide2 from '../assets/02cabecera-sobremi.jpg';
+import wide3 from '../assets/03cabecera-sobremi.png';
+import wide4 from '../assets/04cabecera-sobremi.png';
+
+interface Props {
+  variant?: 'contact' | 'wide';
+}
+
+const { variant = 'contact' } = Astro.props;
+
+const images =
+  variant === 'wide'
+    ? [
+        { src: wide1.src, alt: 'Cabecera sobre mi 1' },
+        { src: wide2.src, alt: 'Cabecera sobre mi 2' },
+        { src: wide3.src, alt: 'Cabecera sobre mi 3' },
+        { src: wide4.src, alt: 'Cabecera sobre mi 4' },
+      ]
+    : [
+        { src: contact1.src, alt: 'Contacto 1' },
+        { src: contact2.src, alt: 'Contacto 2' },
+        { src: contact3.src, alt: 'Contacto 3' },
+      ];
+---
+
+<div class={`animated-images-wrapper animated-images-wrapper--${variant}`}>
+  {images.map((img, i) => (
+    <img
+      src={img.src}
+      alt={img.alt ?? ''}
+      class={`anim-image anim-image--${i + 1}`}
+    />
+  ))}
+</div>
+
+<style>
+  .animated-images-wrapper {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .animated-images-wrapper--wide {
+    aspect-ratio: auto;
+  }
+
+  .anim-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    opacity: 0;
+  }
+
+  .animated-images-wrapper .anim-image--1 {
+    position: relative;
+    inset: auto;
+    opacity: 1;
+  }
+
+  .animated-images-wrapper .anim-image--2,
+  .animated-images-wrapper .anim-image--3,
+  .animated-images-wrapper .anim-image--4 {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Variant contact: exactamente la animacion de /contacto */
+  .animated-images-wrapper--contact .anim-image--1 { animation: fadeImage1-contact 8.3s infinite; }
+  .animated-images-wrapper--contact .anim-image--2 { animation: fadeImage2-contact 8.3s infinite; }
+  .animated-images-wrapper--contact .anim-image--3 { animation: fadeImage3-contact 8.3s infinite; }
+  .animated-images-wrapper--contact .anim-image--4 { animation: none; opacity: 0; }
+
+  @keyframes fadeImage1-contact {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeImage2-contact {
+    0% {
+      opacity: 0;
+    }
+    24.1% {
+      opacity: 0;
+    }
+    27.7% {
+      opacity: 1;
+    }
+    96.4% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fadeImage3-contact {
+    0% {
+      opacity: 0;
+    }
+    48.2% {
+      opacity: 0;
+    }
+    51.8% {
+      opacity: 1;
+    }
+    96.4% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Variant wide: 4 imagenes */
+  .animated-images-wrapper--wide .anim-image--1 { animation: fadeImage1-wide 10s infinite; }
+  .animated-images-wrapper--wide .anim-image--2 { animation: fadeImage2-wide 10s infinite; }
+  .animated-images-wrapper--wide .anim-image--3 { animation: fadeImage3-wide 10s infinite; }
+  .animated-images-wrapper--wide .anim-image--4 { animation: fadeImage4-wide 10s infinite; }
+
+  @keyframes fadeImage1-wide {
+    0%   { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  @keyframes fadeImage2-wide {
+    0%   { opacity: 0; }
+    24.1% { opacity: 0; }
+    27.7% { opacity: 1; }
+    96.4% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes fadeImage3-wide {
+    0%   { opacity: 0; }
+    48.2% { opacity: 0; }
+    51.8% { opacity: 1; }
+    96.4% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes fadeImage4-wide {
+    0%   { opacity: 0; }
+    72.3% { opacity: 0; }
+    75.9% { opacity: 1; }
+    96.4% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+</style>

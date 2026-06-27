@@ -1,97 +1,495 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import AnimatedImages from '../components/AnimatedImages.astro';
 ---
 
-<Layout title="Contacto - Portfolio">
+<Layout title="Contacto | Srta. Nognog">
   <div class="contact-container">
-    <h1>Contacto</h1>
-    <p>¿Tienes un proyecto en mente? ¡Hablemos!</p>
-    
-    <div class="contact-info">
-      <div class="contact-item">
-        <h2>Email</h2>
-        <a href="mailto:hola@portfolio.com">hola@portfolio.com</a>
+    <div class="contact-header">
+      <h1>Contacto</h1>
+      <p class="subtitle">ESCRÍBEME ALGO BONITO</p>
+    </div>
+
+    <div class="contact-wrapper">
+      <div class="client-form-section">
+        <form id="contactForm" class="contact-form">
+          <div class="form-group">
+            <label for="name">Tu nombre *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              placeholder="Tu nombre completo"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="email">Tu email *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="tu@email.com"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Asunto *</label>
+            <input
+              type="text"
+              id="subject"
+              name="subject"
+              placeholder="Asunto del mensaje"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="message">Mensaje *</label>
+            <textarea
+              id="message"
+              name="message"
+              placeholder="Escribe tu mensaje aquí..."
+              rows="6"
+              required
+            ></textarea>
+          </div>
+
+          <!-- Honeypot field (hidden from users) -->
+          <input
+            type="text"
+            id="honeypot"
+            name="honeypot"
+            style="display: none;"
+            tabindex="-1"
+            autocomplete="off"
+          />
+
+          <!-- Turnstile captcha -->
+          <div class="form-group captcha-group">
+            <div
+              class="cf-turnstile"
+              data-sitekey={import.meta.env.PUBLIC_CLOUDFLARE_TURNSTILE_SITEKEY}
+              data-theme="light"
+            ></div>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="terms" name="terms" required />
+            <label for="terms" class="checkbox-label">
+              He leído y acepto la
+              <a href="/politica-privacidad" target="_blank">Política de Privacidad y Cookies</a>
+            </label>
+          </div>
+
+          <div id="formStatus" class="form-status hidden"></div>
+
+          <button type="submit" class="submit-btn" id="submitBtn">Enviar</button>
+        </form>
+
       </div>
-      
-      <div class="contact-item">
-        <h2>Redes Sociales</h2>
-        <div class="social-links">
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
-          <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer">TikTok</a>
-          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          <a href="https://behance.net" target="_blank" rel="noopener noreferrer">Behance</a>
-        </div>
-      </div>
+
+    </div>
+    <div class="image-section">
+      <AnimatedImages variant="contact" />
+    </div>
+
+    <div class="email-alternative">
+      <p>
+        O si prefieres contactarme directamente, envíame un email aquí:
+        <a href="mailto:srtanognog@gmail.com">srtanognog@gmail.com</a>
+      </p>
     </div>
   </div>
 </Layout>
 
+<script
+  src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+  async
+  defer
+></script>
+
+<script>
+  const form = document.getElementById('contactForm') as HTMLFormElement;
+  const formStatus = document.getElementById('formStatus') as HTMLElement;
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+
+  form.addEventListener('submit', async (e: SubmitEvent) => {
+    e.preventDefault();
+
+    // Validate form
+    if (!form.checkValidity()) {
+      formStatus.textContent = 'Por favor, rellena todos los campos correctamente.';
+      formStatus.classList.remove('hidden', 'success');
+      formStatus.classList.add('error');
+      return;
+    }
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    // Get form data
+    const formData = {
+      name: (document.getElementById('name') as HTMLInputElement).value,
+      email: (document.getElementById('email') as HTMLInputElement).value,
+      subject: (document.getElementById('subject') as HTMLInputElement).value,
+      message: (document.getElementById('message') as HTMLTextAreaElement).value,
+      honeypot: (document.getElementById('honeypot') as HTMLInputElement).value,
+      captcha_token: (window as any).turnstile?.getResponse?.() || '',
+    };
+
+    // Validate captcha
+    if (!formData.captcha_token) {
+      formStatus.textContent = 'Por favor, completa el captcha.';
+      formStatus.classList.remove('hidden', 'success');
+      formStatus.classList.add('error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar';
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        formStatus.textContent = data.message || '¡Mensaje enviado con éxito!';
+        formStatus.classList.remove('hidden', 'error');
+        formStatus.classList.add('success');
+        form.reset();
+        (window as any).turnstile?.reset?.();
+      } else {
+        formStatus.textContent = data.error || 'Error al enviar el mensaje. Intenta de nuevo.';
+        formStatus.classList.remove('hidden', 'success');
+        formStatus.classList.add('error');
+
+        if (response.status === 429) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Demasiados intentos (15 min)';
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar';
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      formStatus.textContent = 'Error de conexión. Por favor, intenta de nuevo.';
+      formStatus.classList.remove('hidden', 'success');
+      formStatus.classList.add('error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar';
+    }
+  });
+</script>
+
 <style>
   .contact-container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 4rem 2rem;
+    padding: 0 2rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "image"
+      "form"
+      "email";
+    gap: 2rem;
+  }
+
+  .contact-header {
+    grid-area: header;
+    margin-bottom: 0;
   }
 
   h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    font-weight: 700;
+    font-size: 36px;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: #333;
+    letter-spacing: -1.5px;
   }
 
-  p {
-    font-size: 1.25rem;
-    color: #666;
-    margin-bottom: 3rem;
+  .subtitle {
+    font-size: 23px;
+    color: #f0f;
+    font-weight: 500;
   }
 
-  .contact-info {
-    display: grid;
-    gap: 3rem;
+  .contact-wrapper {
+    grid-area: form;
+    min-width: 0;
   }
 
-  .contact-item h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
+  .client-form-section {
+    min-width: 0;
+    padding: 0;
   }
 
-  .contact-item a {
-    color: #0066ff;
-    text-decoration: none;
-    font-size: 1.1rem;
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  label {
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: #333;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  textarea {
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 0;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: transparent;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  textarea:focus {
+    outline: none;
+    border-color: #777;
+    box-shadow: none;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 150px;
+  }
+
+  .checkbox-group {
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  input[type="checkbox"] {
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: #ff00ff;
+    color: #fff;
+    vertical-align: middle;
+  }
+
+  #terms {
+    transform: scale(1.5);
+  }
+
+  .checkbox-label {
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 300;
+    font-size: 20px;
+    line-height: 1.4;
+    color: #333;
+    margin: 0;
+  }
+
+  .checkbox-label a {
+    color: #333;
     transition: opacity 0.2s;
   }
 
-  .contact-item a:hover {
+  .checkbox-label a:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+  }
+
+  .captcha-group {
+    display: flex;
+    justify-content: flex-start;
+    margin: 1rem 0;
+  }
+
+  .cf-turnstile {
+    display: block;
+  }
+
+  .form-status {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    text-align: center;
+    animation: slideIn 0.3s ease;
+    line-height: 1.5;
+  }
+
+  .form-status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+
+  .form-status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .form-status.hidden {
+    display: none;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .submit-btn {
+    padding: 0.875rem 2rem;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #d0d0d0;
+    border-radius: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+    width: fit-content;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    border-color: #777;
+    color: #333;
+  }
+
+  .submit-btn:active:not(:disabled) {
+    opacity: 0.8;
+  }
+
+  .submit-btn:disabled {
+    border-color: #e0e0e0;
+    color: #aaa;
+    cursor: not-allowed;
     opacity: 0.7;
   }
 
-  .social-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+  .image-section {
+    grid-area: image;
+    min-width: 0;
+  }
+
+  .image-section :global(.animated-images-wrapper) {
+    width: 100%;
+    aspect-ratio: 1;
+  }
+
+  .email-alternative {
+    grid-area: email;
+    margin-top: 0.5rem;
+    text-align: left;
+  }
+
+  .email-alternative p {
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: #666;
+    margin: 0;
+  }
+
+  .email-alternative a {
+    color: #ff00ff;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+
+  .email-alternative a:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+  }
+
+  @media (min-width: 1024px) {
+    .contact-container {
+      grid-template-columns: minmax(0, 5fr) minmax(260px, 2fr);
+      grid-template-areas:
+        "header header"
+        "form image"
+        "email email";
+      column-gap: 4rem;
+      row-gap: 2rem;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .image-section {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
   }
 
   @media (max-width: 768px) {
     .contact-container {
       padding: 2rem 1rem;
+      gap: 1.5rem;
+    }
+
+    .contact-header {
+      margin-bottom: 0;
     }
 
     h1 {
       font-size: 2rem;
     }
 
-    p {
+    .subtitle {
       font-size: 1rem;
     }
 
-    .contact-item h2 {
-      font-size: 1.25rem;
+    .image-section {
+      width: 100%;
     }
 
-    .contact-item a {
-      font-size: 1rem;
+    .image-wrapper {
+      max-height: none;
+      aspect-ratio: 1;
+    }
+
+    .contact-form {
+      gap: 1.2rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    textarea {
+      padding: 0.65rem 0.875rem;
+      font-size: 16px;
+    }
+
+    .submit-btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
     }
   }
 </style>

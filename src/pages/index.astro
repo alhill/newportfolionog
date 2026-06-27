@@ -1,9 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getRequestOrigin } from '../lib/request-origin';
 
 // Obtener proyectos (sin filtro de featured hasta que se cree el índice)
 let projects: any[] = [];
 let error = null;
+const origin = getRequestOrigin(Astro.request);
 
 try {
 	const limit = 50;
@@ -11,7 +13,7 @@ try {
 	let hasNext = true;
 
 	while (hasNext) {
-		const response = await fetch(`${Astro.url.origin}/api/projects?limit=${limit}&page=${page}`);
+		const response = await fetch(`${origin}/api/projects?limit=${limit}&page=${page}`);
 		const projectsData = await response.json();
 
 		if (!projectsData.success) {
@@ -30,7 +32,7 @@ try {
 }
 ---
 
-<Layout title="Portfolio">
+<Layout title="Portfolio | Srta. Nognog">
 	<main class="portfolio-main">
 		<section class="projects-grid">
 			{projects.length === 0 ? (

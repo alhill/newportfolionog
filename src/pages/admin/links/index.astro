@@ -1,0 +1,14 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import LinksEditor from '../../../components/admin/LinksEditor.jsx';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Enlaces - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="links" user={user} />
+    <LinksEditor client:visible />
+  </div>
+</Layout>

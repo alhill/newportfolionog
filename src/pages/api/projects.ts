@@ -230,6 +230,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       category: data.category || 'General',
       featured: data.featured || false,
       order: data.order || 0,
+      seo: data.seo || {},
       createdAt: now,
       createdBy: locals.user.uid,
     };

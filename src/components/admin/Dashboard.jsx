@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 
+const PROJECTS_PAGE_SIZE = 6;
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -7,42 +9,55 @@ export default function Dashboard() {
     totalCategories: 0,
   });
   const [recentProjects, setRecentProjects] = useState([]);
+  const [projectsPage, setProjectsPage] = useState(1);
+  const [hasMoreProjects, setHasMoreProjects] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const mountedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
-    loadStats();
+    loadDashboard();
     
     return () => {
       mountedRef.current = false;
     };
   }, []);
 
-  const loadStats = async () => {
+  const loadDashboard = async () => {
     try {
-      // Cargar proyectos
-      const projectsResponse = await fetch('/api/projects?limit=100');
-      const projectsData = await projectsResponse.json();
+      const [projectsResponse, featuredResponse, categoriesResponse] = await Promise.all([
+        fetch(`/api/projects?page=1&limit=${PROJECTS_PAGE_SIZE}`),
+        fetch('/api/projects?featured=true&limit=1'),
+        fetch('/api/projects/categories'),
+      ]);
 
-      if (projectsData.success && mountedRef.current) {
-        const projects = projectsData.data;
-        const featured = projects.filter(p => p.featured).length;
-        
+      const [projectsData, featuredData, categoriesData] = await Promise.all([
+        projectsResponse.json(),
+        featuredResponse.json(),
+        categoriesResponse.json(),
+      ]);
+
+      if (!mountedRef.current) return;
+
+      if (projectsData.success) {
+        setRecentProjects(projectsData.data);
+        setProjectsPage(1);
+        setHasMoreProjects(projectsData.pagination?.hasNext ?? false);
         setStats(prev => ({
           ...prev,
-          totalProjects: projects.length,
-          featuredProjects: featured,
+          totalProjects: projectsData.pagination?.total ?? projectsData.data.length,
         }));
-        
-        setRecentProjects(projects.slice(0, 5));
       }
 
-      // Cargar categorías
-      const categoriesResponse = await fetch('/api/projects/categories');
-      const categoriesData = await categoriesResponse.json();
+      if (featuredData.success) {
+        setStats(prev => ({
+          ...prev,
+          featuredProjects: featuredData.pagination?.total ?? 0,
+        }));
+      }
 
-      if (categoriesData.success && mountedRef.current) {
+      if (categoriesData.success) {
         setStats(prev => ({
           ...prev,
           totalCategories: categoriesData.data.length,
@@ -53,6 +68,30 @@ export default function Dashboard() {
     } finally {
       if (mountedRef.current) {
         setLoading(false);
+      }
+    }
+  };
+
+  const loadMoreProjects = async () => {
+    if (loadingMore || !hasMoreProjects) return;
+
+    setLoadingMore(true);
+    const nextPage = projectsPage + 1;
+
+    try {
+      const response = await fetch(`/api/projects?page=${nextPage}&limit=${PROJECTS_PAGE_SIZE}`);
+      const data = await response.json();
+
+      if (data.success && mountedRef.current) {
+        setRecentProjects(prev => [...prev, ...data.data]);
+        setProjectsPage(nextPage);
+        setHasMoreProjects(data.pagination?.hasNext ?? false);
+      }
+    } catch (error) {
+      console.error('Error cargando más proyectos:', error);
+    } finally {
+      if (mountedRef.current) {
+        setLoadingMore(false);
       }
     }
   };
@@ -140,23 +179,31 @@ export default function Dashboard() {
               <p class="empty">No hay proyectos recientes</p>
             ) : (
               recentProjects.map(project => (
-                <div key={project.id} class="recent-project-item">
+                <a key={project.id} href={`/admin/projects/${project.id}`} class="recent-project-item">
                   <img src={project.thumb} alt={project.title} class="recent-thumb" />
                   <div class="recent-info">
                     <h3>{project.title}</h3>
-                    <span class="recent-category">{project.category}</span>
                   </div>
-                  <a href={`/admin/projects/${project.id}`} class="recent-action">
+                  <span class="recent-action" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M5 12h14"></path>
                       <path d="m12 5 7 7-7 7"></path>
                     </svg>
-                  </a>
-                </div>
+                  </span>
+                </a>
               ))
             )}
           </div>
-          <a href="/admin/projects" class="view-all-link">Ver todos los proyectos →</a>
+          {hasMoreProjects && (
+            <button
+              type="button"
+              class="load-more-btn"
+              onClick={loadMoreProjects}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Cargando...' : 'Ver más proyectos'}
+            </button>
+          )}
         </div>
       </div>
     </main>

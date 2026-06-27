@@ -1,0 +1,308 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AnimatedImages from '../components/AnimatedImages.astro';
+import { getRequestOrigin } from '../lib/request-origin';
+import bang from '../assets/bang.png'
+
+const origin = getRequestOrigin(Astro.request);
+
+// Obtener datos de la página desde Firebase a través de la API
+let pageData: Record<string, any> = {};
+try {
+  const res = await fetch(`${origin}/api/pages/sobre-mi`);
+  const json = await res.json();
+  if (json.success) pageData = json.data ?? {};
+} catch (_) {}
+
+const title: string = pageData.title ?? 'Srta. Nognog';
+const subtitle: string = pageData.subtitle ?? 'Diseñadora gráfica & directora de arte';
+const content: string =
+  pageData.content ??
+  (pageData.bio ? `<p>${String(pageData.bio).replace(/\n\n/g, '</p><p>')}</p>` : null) ??
+  '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, nec aliquam nisl nisl sit amet nisl.</p><p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.</p><p>Aenean ultricies mi vitae est. Mauris placerat eleifend leo. Quisque sit amet est et sapien ullamcorper pharetra.</p>';
+const ctaText: string = pageData.ctaText ?? pageData.linkLabel ?? 'Ver mi trabajo';
+const ctaUrl: string = pageData.ctaUrl ?? pageData.linkUrl ?? '/';
+---
+
+<Layout title="Sobre mí | Srta. Nognog" description="Presentación personal de Srta. Nognog">
+  <main class="sobremi-main">
+
+    <!-- Animación de imágenes -->
+    <section class="sobremi-hero">
+      <div class="hero-variant hero-variant--wide">
+        <AnimatedImages variant="wide" />
+      </div>
+      <div class="hero-variant hero-variant--contact">
+        <AnimatedImages variant="contact" />
+      </div>
+    </section>
+
+    <!-- Contenido en dos columnas -->
+    <section class="sobremi-content">
+
+      <!-- Columna izquierda: título, subtítulo, redes -->
+      <aside class="sobremi-sidebar">
+        <h1 class="sobremi-title">{title}</h1>
+        <p class="sobremi-subtitle">{subtitle}</p>
+
+        <div class="sobremi-socials">
+          <a href="https://instagram.com/srta.nognog" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </a>
+          <a href="https://tiktok.com/@srta.nognog" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+            </svg>
+          </a>
+          <a href="https://linkedin.com/in/srtanognog" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+          <a href="https://behance.net/Srtanognog" target="_blank" rel="noopener noreferrer" aria-label="Behance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="15" viewBox="0 0 300 229" fill="currentColor">
+              <path d="M106,0c10.5,0,20.2,0.8,29.1,3.2c8.9,1.6,16.2,4.9,22.7,8.9s11.3,9.7,14.6,17c3.2,7.3,4.9,16.2,4.9,25.9c0,11.3-2.4,21-8.1,28.3c-4.9,7.3-12.9,13.8-22.7,18.6c13.8,4,24.3,11.3,30.7,21s10.5,21.8,10.5,35.6c0,11.3-2.4,21-6.5,29.1c-4,8.1-10.5,15.4-17.8,20.2c-7.3,4.9-16.2,8.9-25.9,11.3c-9.7,2.4-19.4,4-29.1,4L0,223.3V0H106z M99.5,90.6c8.9,0,16.2-2.4,21.8-6.5s8.1-11.3,8.1-20.2c0-4.9-0.8-9.7-2.4-12.9c-1.6-3.2-4-5.7-7.3-8.1c-3.2-1.6-6.5-3.2-10.5-4c-4-0.8-8.1-0.8-12.9-0.8H49.4v52.6C49.4,90.6,99.5,90.6,99.5,90.6z M101.9,186.1c4.9,0,9.7-0.8,13.8-1.6c4-0.8,8.1-2.4,11.3-4.9s5.7-4.9,8.1-8.9c1.6-4,3.2-8.9,3.2-14.6c0-11.3-3.2-19.4-9.7-25.1c-6.5-4.9-15.4-7.3-25.9-7.3H49.4v62.3H101.9z"/>
+              <path d="M258.1,185.3c6.5,6.5,16.2,9.7,29.1,9.7c8.9,0,17-2.4,23.5-6.5c6.5-4.9,10.5-9.7,12.1-14.6h39.6c-6.5,19.4-16.2,33.2-29.1,42.1c-12.9,8.1-28.3,12.9-46.9,12.9c-12.9,0-24.3-2.4-34.8-6.5c-10.5-4-18.6-9.7-25.9-17.8c-7.3-7.3-12.9-16.2-16.2-26.7c-4-10.5-5.7-21.8-5.7-34.8c0-12.1,1.6-23.5,5.7-34s9.7-19.4,17-27.5c7.3-7.3,16.2-13.8,25.9-17.8c10.5-4,21-6.5,34-6.5c13.8,0,25.9,2.4,36.4,8.1c10.5,5.7,18.6,12.1,25.1,21.8c6.5,8.9,11.3,19.4,14.6,30.7c1.6,11.3,2.4,22.7,1.6,35.6H246.8C246.8,166.7,251.6,178.8,258.1,185.3z M309.1,100.3c-5.7-5.7-14.6-8.9-25.1-8.9c-7.3,0-12.9,1.6-17.8,4c-4.9,2.4-8.1,5.7-11.3,8.9c-3.2,3.2-4.9,7.3-5.7,11.3c-0.8,4-1.6,7.3-1.6,10.5h72.8C318.8,114.1,314.7,106,309.1,100.3z M237.9,15.4h90.6v21.8h-90.6V15.4z"/>
+            </svg>
+          </a>
+          <a href="/contacto" aria-label="Contacto">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </a>
+          <a href="mailto:srtanognog@gmail.com" aria-label="Correo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+          </a>
+        </div>
+      </aside>
+
+      <!-- Columna derecha: bio + CTA -->
+      <div class="sobremi-bio">
+        <div class="sobremi-text" set:html={content} />
+        <a href={ctaUrl} class="sobremi-cta">{ctaText}</a>
+      </div>
+
+    </section>
+
+    <!-- Imagen a ancho completo -->
+    <div class="sobremi-fullwidth-image">
+      <img src={bang.src} alt="Srta. Nognog" />
+    </div>
+
+  </main>
+</Layout>
+
+<style>
+  .sobremi-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+  }
+
+  /* ── Hero animado ── */
+  .sobremi-hero {
+    margin-bottom: 3rem;
+  }
+
+  .hero-variant--wide {
+    display: block !important;
+  }
+
+  .hero-variant--contact {
+    display: none !important;
+  }
+
+  .sobremi-hero :global(.animated-images-wrapper--wide .anim-image) {
+    object-fit: contain;
+  }
+
+  .sobremi-hero :global(.animated-images-wrapper--contact .anim-image) {
+    object-fit: contain;
+  }
+
+  /* ── Dos columnas ── */
+  .sobremi-content {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    margin-bottom: 4rem;
+    align-items: start;
+  }
+
+  .sobremi-content > * {
+    min-width: 0;
+  }
+
+  /* Columna izquierda */
+  .sobremi-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sobremi-title {
+    font-size: 2rem;
+    font-weight: 500;
+    color: #333;
+    letter-spacing: -1px;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .sobremi-subtitle {
+    font-size: 0.9em;
+    color: #999;
+    font-weight: 300;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .sobremi-socials {
+    display: grid;
+    grid-template-columns: repeat(3, 20px);
+    gap: 10px 14px;
+    align-items: center;
+    justify-content: start;
+    margin-top: 0.5rem;
+  }
+
+  .sobremi-socials a {
+    color: #ff5faf;
+    transition: color 0.2s, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+  }
+
+  .sobremi-socials a:hover {
+    color: #ff3f9f;
+    opacity: 0.75;
+  }
+
+  /* Columna derecha */
+  .sobremi-bio {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    min-width: 0;
+  }
+
+  .sobremi-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .sobremi-text,
+  .sobremi-text :global(*) {
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  }
+
+  .sobremi-text :global(p),
+  .sobremi-text :global(ul),
+  .sobremi-text :global(ol) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: #333;
+    line-height: 1.7;
+    margin: 0 0 1.2rem;
+  }
+
+  .sobremi-text :global(span),
+  .sobremi-text :global(a),
+  .sobremi-text :global(strong),
+  .sobremi-text :global(em),
+  .sobremi-text :global(b),
+  .sobremi-text :global(i) {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .sobremi-text :global(strong),
+  .sobremi-text :global(b) {
+    font-weight: 600;
+  }
+
+  .sobremi-text :global(p:last-child),
+  .sobremi-text :global(ul:last-child),
+  .sobremi-text :global(ol:last-child) {
+    margin-bottom: 0;
+  }
+
+  .sobremi-text :global(a) {
+    color: #ff99cc;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  /* Botón CTA */
+  .sobremi-cta {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    color: white;
+    background-color: #03deff;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: border-color 0.3s, color 0.3s;
+    width: fit-content;
+  }
+
+  .sobremi-cta:hover {
+    border-color: #777;
+    color: #333;
+  }
+
+  /* Imagen full-width */
+  .sobremi-fullwidth-image {
+    width: 100%;
+  }
+
+  .sobremi-fullwidth-image img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 699px) {
+    .hero-variant--wide {
+      display: none !important;
+    }
+
+    .hero-variant--contact {
+      display: block !important;
+    }
+
+    .sobremi-hero {
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .sobremi-content {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+</style>

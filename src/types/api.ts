@@ -10,6 +10,57 @@ export interface MediaItem {
   caption?: string; // Descripción opcional del elemento
 }
 
+export interface SeoData {
+  metaTitle?: string;
+  metaDescription?: string;
+  canonicalPath?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogType?: string;
+  twitterCard?: string;
+  noIndex?: boolean;
+  noFollow?: boolean;
+  jsonLd?: string;
+}
+
+export type ContentPageId = 'index' | 'sobre-mi' | 'contacto';
+export type GlobalSeoPageId = 'global-seo';
+export type PredefinedPageId = ContentPageId | GlobalSeoPageId;
+
+export interface PageDocument {
+  id: ContentPageId;
+  title: string;
+  subtitle?: string;
+  content?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  published?: boolean;
+  seo?: SeoData;
+  updatedAt?: string;
+}
+
+export interface GlobalSeoDocument {
+  id: GlobalSeoPageId;
+  title: string;
+  seo?: SeoData;
+  updatedAt?: string;
+}
+
+export interface PageUpdateInput {
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  published?: boolean;
+  seo?: SeoData;
+}
+
+export interface GlobalSeoUpdateInput {
+  seo?: SeoData;
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -29,6 +80,7 @@ export interface Project {
   order?: number;
   width?: number; // Columnas que ocupa en masonry (1-4)
   height?: number; // Filas que ocupa en masonry (1-2)
+  seo?: SeoData;
   createdAt: string;
   updatedAt?: string;
   createdBy: string;
@@ -63,6 +115,7 @@ export interface ProjectCreateInput {
   category?: string;
   featured?: boolean;
   order?: number;
+  seo?: SeoData;
 }
 
 export interface ProjectUpdateInput {
@@ -80,6 +133,7 @@ export interface ProjectUpdateInput {
   category?: string;
   featured?: boolean;
   order?: number;
+  seo?: SeoData;
 }
 
 export interface Pagination {
@@ -159,4 +213,39 @@ export interface MediaListResponse {
 export interface MediaResponse {
   success: boolean;
   data: Media;
+}
+
+/**
+ * Redirections Types
+ */
+export interface Redirection {
+  id: string;
+  name: string;
+  from: string;
+  to: string;
+  createdAt: string;
+  updatedAt?: string;
+  createdBy: string;
+}
+
+export interface RedirectionCreateInput {
+  name: string;
+  from: string;
+  to: string;
+}
+
+export interface RedirectionUpdateInput {
+  name?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface RedirectionsListResponse {
+  success: boolean;
+  data: Redirection[];
+}
+
+export interface RedirectionResponse {
+  success: boolean;
+  data: Redirection;
 }

@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'preact/hooks';
 import { marked } from 'marked';
 import MediaPicker from './MediaPicker';
+import ProjectSeoSection from './ProjectSeoSection';
+import {
+  EMPTY_PROJECT_SEO,
+  generateProjectSeo,
+  hasSeoContent,
+  isSeoEmpty,
+} from '../../lib/project-seo';
 
 export default function ProjectCreate() {
   const [formData, setFormData] = useState({
@@ -14,6 +21,7 @@ export default function ProjectCreate() {
     arte: '',
     description: '',
     thumb: '',
+    seo: { ...EMPTY_PROJECT_SEO },
   });
   const [mediaItems, setMediaItems] = useState([]);
   const [preview, setPreview] = useState('');
@@ -61,6 +69,19 @@ export default function ProjectCreate() {
       
       return updated;
     });
+  };
+
+  const handleSeoChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+
+    setFormData(prev => ({
+      ...prev,
+      seo: {
+        ...prev.seo,
+        [name]: newValue,
+      },
+    }));
   };
 
   const generateSlugFromTitle = (title) => {
@@ -240,11 +261,54 @@ export default function ProjectCreate() {
     setMediaModalOpen(false);
   };
 
+  const buildSeoFromForm = () =>
+    generateProjectSeo({
+      title: formData.title,
+      slug: formData.slug,
+      description: formData.description,
+      thumb: formData.thumb,
+    });
+
+  const applyGeneratedSeo = () => {
+    setFormData((prev) => ({
+      ...prev,
+      seo: buildSeoFromForm(),
+    }));
+  };
+
+  const handleAutoFillSeo = () => {
+    if (hasSeoContent(formData.seo)) {
+      if (
+        !confirm(
+          'Generar automáticamente la información de SEO sobreescribirá la que ya existe, ¿estás seguro?',
+        )
+      ) {
+        return;
+      }
+    }
+
+    applyGeneratedSeo();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    let seo = formData.seo;
+
+    if (isSeoEmpty(formData.seo)) {
+      if (
+        confirm(
+          '¿Deseas crear automáticamente los campos de SEO en base a la entrada que estás creando?',
+        )
+      ) {
+        seo = buildSeoFromForm();
+        setFormData((prev) => ({ ...prev, seo }));
+      }
+    }
+
     const projectData = {
       ...formData,
+      seo,
       media: mediaItems,
       headerImg: formData.thumb,
       category: 'General',
@@ -520,6 +584,12 @@ export default function ProjectCreate() {
             </button>
           </div>
         </div>
+
+        <ProjectSeoSection
+          seo={formData.seo}
+          onChange={handleSeoChange}
+          onAutoFill={handleAutoFillSeo}
+        />
 
         <div class="form-actions">
           <a href="/admin/projects" class="btn-secondary">Cancelar</a>

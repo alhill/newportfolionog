@@ -6,6 +6,7 @@ import Dashboard from './Dashboard';
 import ProjectsList from './ProjectsList';
 import ProjectCreate from './ProjectCreate';
 import ProjectEdit from './ProjectEdit';
+import PagesList from './PagesList';
 
 export default function AdminApp({ userData }) {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -35,12 +36,13 @@ export default function AdminApp({ userData }) {
             <p>Sección en desarrollo</p>
           </main>
         </div>
-        <div path="/admin/pages">
+        <PagesList path="/admin/pages" />
+        <div path="/admin/links">
           <main class="main-content">
             <div class="content-header">
-              <h1>Páginas</h1>
+              <h1>Enlaces</h1>
             </div>
-            <p>Sección en desarrollo</p>
+            <p>Abre <a href="/admin/links">/admin/links</a> para gestionar el linktree.</p>
           </main>
         </div>
         <div path="/admin/settings">

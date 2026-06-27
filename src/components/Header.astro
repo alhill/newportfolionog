@@ -1,5 +1,9 @@
 ---
-// Header común para todas las páginas
+interface Props {
+  adminEditLink?: string;
+}
+
+const { adminEditLink } = Astro.props;
 ---
 
 <header class="site-header">
@@ -20,8 +24,14 @@
   <nav class="menu-nav">
     <a href="/" class="menu-item">Portfolio</a>
     <a href="/cv" class="menu-item">CV</a>
-    <a href="/about" class="menu-item">Sobre mí</a>
-    <a href="/contact" class="menu-item">Contacto</a>
+    <a href="/sobre-mi" class="menu-item">Sobre mí</a>
+    <a href="/contacto" class="menu-item">Contacto</a>
+    {adminEditLink && (
+      <>
+        <div class="menu-divider" aria-hidden="true"></div>
+        <a href={adminEditLink} class="menu-item menu-item-admin">Editar este proyecto</a>
+      </>
+    )}
   </nav>
 </aside>
 
@@ -200,6 +210,22 @@
   .menu-item:hover::after {
     opacity: 1;
     transform: translateX(0);
+  }
+
+  .menu-divider {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0.75rem 0;
+  }
+
+  .menu-item-admin {
+    color: #00deff;
+    font-weight: 500;
+  }
+
+  .menu-item-admin:hover {
+    color: #fff;
   }
 
   @media (max-width: 768px) {

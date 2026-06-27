@@ -19,11 +19,20 @@ if (!getApps().length) {
     }
   }
 
-  initializeApp({
-    credential: serviceAccount ? cert(serviceAccount) : undefined,
+  const appOptions: {
+    credential?: ReturnType<typeof cert>;
+    projectId?: string;
+    storageBucket?: string;
+  } = {
     projectId: import.meta.env.FIREBASE_PROJECT_ID,
     storageBucket: import.meta.env.FIREBASE_STORAGE_BUCKET,
-  });
+  };
+
+  if (serviceAccount) {
+    appOptions.credential = cert(serviceAccount);
+  }
+
+  initializeApp(appOptions);
 }
 
 export const adminAuth = getAuth();

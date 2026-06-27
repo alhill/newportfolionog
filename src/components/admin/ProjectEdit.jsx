@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
 import { marked } from 'marked';
 import MediaPicker from './MediaPicker';
+import ProjectSeoSection from './ProjectSeoSection';
+import {
+  EMPTY_PROJECT_SEO,
+  generateProjectSeo,
+  hasSeoContent,
+} from '../../lib/project-seo';
 
 export default function ProjectEdit({ id }) {
   const [formData, setFormData] = useState(null);
@@ -22,6 +28,8 @@ export default function ProjectEdit({ id }) {
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [discardModalOpen, setDiscardModalOpen] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -40,37 +48,83 @@ export default function ProjectEdit({ id }) {
     }
   }, [formData?.description]);
 
-  const loadProject = async () => {
+  const normalizeProjectData = (project) => ({
+    ...project,
+    title: project.title || '',
+    innerTitle: project.innerTitle || '',
+    slug: project.slug || '',
+    cliente: project.cliente || '',
+    campaña: project.campaña || '',
+    agencia: project.agencia || '',
+    papel: project.papel || '',
+    copy: project.copy || '',
+    arte: project.arte || '',
+    description: project.description || '',
+    thumb: project.thumb || '',
+    headerImg: project.headerImg || '',
+    seo: {
+      ...EMPTY_PROJECT_SEO,
+      ...project.seo,
+      noIndex: Boolean(project.seo?.noIndex),
+      noFollow: Boolean(project.seo?.noFollow),
+    },
+  });
+
+  const resetDraftUiState = () => {
+    setMediaForm({ type: '', width: 'full', uri: '', caption: '' });
+    setGalleryUrls(['']);
+    setEditingMediaIndex(null);
+    setMediaModalOpen(false);
+    setMediaPickerOpen(false);
+    setMediaPickerTarget(null);
+    setMediaPickerGalleryIndex(null);
+    setDraggedMediaIndex(null);
+    setPreviewOpen(false);
+  };
+
+  const applyProjectToForm = (project) => {
+    setFormData(normalizeProjectData(project));
+    setMediaItems(project.media || []);
+    resetDraftUiState();
+  };
+
+  const loadProject = async ({ redirectOnError = true } = {}) => {
     try {
       const response = await fetch(`/api/projects/${id}`);
       const data = await response.json();
 
       if (data.success) {
-        setFormData({
-          ...data.data,
-          title: data.data.title || '',
-          innerTitle: data.data.innerTitle || '',
-          slug: data.data.slug || '',
-          cliente: data.data.cliente || '',
-          campaña: data.data.campaña || '',
-          agencia: data.data.agencia || '',
-          papel: data.data.papel || '',
-          copy: data.data.copy || '',
-          arte: data.data.arte || '',
-          description: data.data.description || '',
-          thumb: data.data.thumb || '',
-          headerImg: data.data.headerImg || '',
-        });
-        setMediaItems(data.data.media || []);
-      } else {
+        applyProjectToForm(data.data);
+        return true;
+      }
+
+      if (redirectOnError) {
         alert('Error al cargar el proyecto');
         window.location.href = '/admin/projects';
       }
+      return false;
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al cargar el proyecto');
+      if (redirectOnError) {
+        alert('Error al cargar el proyecto');
+      }
+      return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDiscardChanges = async () => {
+    setDiscarding(true);
+    try {
+      const ok = await loadProject({ redirectOnError: false });
+      if (ok) {
+        setDiscardModalOpen(false);
+      } else {
+        alert('Error al recargar el proyecto');
+      }
+    } finally {
+      setDiscarding(false);
     }
   };
 
@@ -91,6 +145,19 @@ export default function ProjectEdit({ id }) {
       
       return updated;
     });
+  };
+
+  const handleSeoChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+
+    setFormData(prev => ({
+      ...prev,
+      seo: {
+        ...(prev.seo || {}),
+        [name]: newValue,
+      },
+    }));
   };
 
   const generateSlugFromTitle = (title) => {
@@ -270,6 +337,28 @@ export default function ProjectEdit({ id }) {
     setMediaModalOpen(false);
   };
 
+  const handleAutoFillSeo = () => {
+    if (hasSeoContent(formData.seo)) {
+      if (
+        !confirm(
+          'Generar automáticamente la información de SEO sobreescribirá la que ya existe, ¿estás seguro?',
+        )
+      ) {
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      seo: generateProjectSeo({
+        title: prev.title,
+        slug: prev.slug,
+        description: prev.description,
+        thumb: prev.thumb,
+      }),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -361,7 +450,7 @@ export default function ProjectEdit({ id }) {
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
-            Vista previa
+            Ir al proyecto
           </a>
         </div>
       </div>
@@ -618,6 +707,12 @@ export default function ProjectEdit({ id }) {
           </div>
         </div>
 
+        <ProjectSeoSection
+          seo={formData.seo}
+          onChange={handleSeoChange}
+          onAutoFill={handleAutoFillSeo}
+        />
+
         <div class="form-actions">
           <button type="button" onClick={handleDelete} class="btn-danger">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -630,7 +725,13 @@ export default function ProjectEdit({ id }) {
             Eliminar Proyecto
           </button>
           <div class="actions-right">
-            <a href="/admin/projects" class="btn-secondary">Cancelar</a>
+            <button
+              type="button"
+              class="btn-secondary"
+              onClick={() => setDiscardModalOpen(true)}
+            >
+              Descartar cambios
+            </button>
             <button type="submit" class="btn-primary">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -652,6 +753,40 @@ export default function ProjectEdit({ id }) {
 
       {copyToast && (
         <div class="copy-toast">Enlace copiado en el portapapeles</div>
+      )}
+
+      {discardModalOpen && (
+        <div
+          class="modal"
+          onClick={() => {
+            if (!discarding) setDiscardModalOpen(false);
+          }}
+        >
+          <div class="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 class="confirm-dialog-title">Descartar cambios</h2>
+            <p class="confirm-dialog-message">
+              ¿Estás seguro de que quieres descartar los cambios? Se restaurarán los datos guardados en la base de datos y perderás las modificaciones sin guardar.
+            </p>
+            <div class="confirm-dialog-actions">
+              <button
+                type="button"
+                class="btn-secondary"
+                onClick={() => setDiscardModalOpen(false)}
+                disabled={discarding}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn-danger"
+                onClick={handleDiscardChanges}
+                disabled={discarding}
+              >
+                {discarding ? 'Descartando...' : 'Descartar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {mediaModalOpen && (

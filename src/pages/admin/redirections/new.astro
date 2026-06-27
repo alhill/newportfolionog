@@ -1,0 +1,14 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import RedirectionForm from '../../../components/admin/RedirectionForm';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Nueva redirección - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="redirections" user={user} />
+    <RedirectionForm client:visible />
+  </div>
+</Layout>

@@ -1,14 +1,14 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
-import ProjectCreate from '../../../components/admin/ProjectCreate';
+import RedirectionsList from '../../../components/admin/RedirectionsList';
 
 const user = Astro.locals.user;
 ---
 
-<Layout title="Nuevo Proyecto - Admin">
+<Layout title="Redirecciones - Admin">
   <div class="admin-layout">
-    <AdminSidebar currentPage="projects" user={user} />
-    <ProjectCreate client:visible />
+    <AdminSidebar currentPage="redirections" user={user} />
+    <RedirectionsList client:visible />
   </div>
 </Layout>

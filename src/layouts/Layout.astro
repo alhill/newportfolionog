@@ -2,14 +2,120 @@
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/admin.css';
+import { adminDb } from '../lib/firebase-admin';
+import { getRequestOrigin } from '../lib/request-origin';
+import type { SeoData } from '../types/api';
+import ico180 from '../assets/icons/180.png'
+import ico192 from '../assets/icons/192.png'
+import ico32 from '../assets/icons/32.png'
 
 interface Props {
 	title?: string;
 	description?: string;
+	seo?: SeoData;
+	adminEditLink?: string;
 }
 
-const { title = 'Portfolio', description = 'Portfolio profesional' } = Astro.props;
+const { title = 'Portfolio', description = 'Portfolio profesional', seo = {}, adminEditLink } = Astro.props;
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
+
+const routeToPageId: Record<string, string> = {
+	'/': 'index',
+	'/sobre-mi': 'sobre-mi',
+	'/contacto': 'contacto',
+};
+
+const pathname = Astro.url.pathname !== '/' ? Astro.url.pathname.replace(/\/+$/, '') : '/';
+
+const emptySeo: SeoData = {
+	metaTitle: '',
+	metaDescription: '',
+	canonicalPath: '',
+	ogTitle: '',
+	ogDescription: '',
+	ogImage: '',
+	ogType: 'website',
+	twitterCard: 'summary_large_image',
+	noIndex: false,
+	noFollow: false,
+	jsonLd: '',
+};
+
+function mergeSeo(base: SeoData, override: SeoData): SeoData {
+	const merged: SeoData = { ...base };
+
+	for (const key of Object.keys(override) as (keyof SeoData)[]) {
+		const value = override[key];
+		if (value === undefined || value === null) continue;
+		if (typeof value === 'string') {
+			merged[key] = value.trim() as any;
+			continue;
+		}
+		merged[key] = value as any;
+	}
+
+	return merged;
+}
+
+function toAbsoluteUrl(origin: string, pathOrUrl: string): string {
+	const value = pathOrUrl.trim();
+	if (!value) return origin;
+	if (value.startsWith('http://') || value.startsWith('https://')) return value;
+	const normalized = value.startsWith('/') ? value : `/${value}`;
+	return `${origin}${normalized}`;
+}
+
+function parseJsonLd(raw: string | undefined): string | null {
+	if (!raw || typeof raw !== 'string' || !raw.trim()) return null;
+	try {
+		const parsed = JSON.parse(raw);
+		return JSON.stringify(parsed);
+	} catch {
+		return null;
+	}
+}
+
+const origin = getRequestOrigin(Astro.request);
+const canonicalFromPath = `${origin}${pathname}`;
+
+let resolvedSeo = { ...emptySeo };
+
+if (!isAdminPage) {
+	const pageId = routeToPageId[pathname];
+
+	try {
+		const [globalDoc, pageDoc] = await Promise.all([
+			adminDb.collection('pages').doc('global-seo').get(),
+			pageId ? adminDb.collection('pages').doc(pageId).get() : Promise.resolve(null),
+		]);
+
+		const globalSeo = globalDoc.exists ? (globalDoc.data()?.seo || {}) : {};
+		const pageSeo = pageDoc?.exists ? (pageDoc.data()?.seo || {}) : {};
+
+		resolvedSeo = mergeSeo(resolvedSeo, globalSeo);
+		resolvedSeo = mergeSeo(resolvedSeo, pageSeo);
+	} catch (error) {
+		console.error('Error loading SEO defaults:', error);
+	}
+}
+
+resolvedSeo = mergeSeo(resolvedSeo, seo);
+
+const resolvedTitle = resolvedSeo.metaTitle || title;
+const resolvedDescription = resolvedSeo.metaDescription || description;
+const canonicalUrl = resolvedSeo.canonicalPath ? toAbsoluteUrl(origin, resolvedSeo.canonicalPath) : canonicalFromPath;
+const ogTitle = resolvedSeo.ogTitle || resolvedTitle;
+const ogDescription = resolvedSeo.ogDescription || resolvedDescription;
+const ogType = resolvedSeo.ogType || 'website';
+const ogImage = resolvedSeo.ogImage ? toAbsoluteUrl(origin, resolvedSeo.ogImage) : '';
+const twitterCard = resolvedSeo.twitterCard || 'summary_large_image';
+const robotsTokens: string[] = [];
+
+if (resolvedSeo.noIndex) robotsTokens.push('noindex');
+if (resolvedSeo.noFollow) robotsTokens.push('nofollow');
+
+const robotsContent = robotsTokens.length > 0 ? robotsTokens.join(', ') : 'index, follow';
+const jsonLdScript = parseJsonLd(resolvedSeo.jsonLd);
 ---
 
 <!doctype html>
@@ -17,17 +123,31 @@ const isAdminPage = Astro.url.pathname.startsWith('/admin');
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="description" content={description} />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
+		<meta name="description" content={resolvedDescription} />
+		<meta name="robots" content={robotsContent} />
+		<link rel="canonical" href={canonicalUrl} />
+		<meta property="og:title" content={ogTitle} />
+		<meta property="og:description" content={ogDescription} />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:url" content={canonicalUrl} />
+		{ogImage && <meta property="og:image" content={ogImage} />}
+		<meta name="twitter:card" content={twitterCard} />
+		<meta name="twitter:title" content={ogTitle} />
+		<meta name="twitter:description" content={ogDescription} />
+		{ogImage && <meta name="twitter:image" content={ogImage} />}
+		<link rel="apple-touch-icon" sizes="180x180" href={ico180.src}>
+		<link rel="icon" type="image/png" sizes="192x192"  href={ico192.src}>
+		<link rel="icon" type="image/png" sizes="32x32" href={ico32.src}>
+		<meta name="theme-color" content="#ffffff">
 		<meta name="generator" content={Astro.generator} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@200..900&display=swap" rel="stylesheet" />
-		<title>{title}</title>
+		<title>{resolvedTitle}</title>
+		{jsonLdScript && <script type="application/ld+json" set:html={jsonLdScript}></script>}
 	</head>
 	<body>
-		{!isAdminPage && <Header />}
+		{!isAdminPage && <Header adminEditLink={adminEditLink} />}
 		<div class={`page-content ${isAdminPage ? 'admin-content' : ''}`}>
 			<slot />
 		</div>

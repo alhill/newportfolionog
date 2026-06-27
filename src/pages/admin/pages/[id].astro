@@ -1,0 +1,15 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import PageEdit from '../../../components/admin/PageEdit.jsx';
+
+const user = Astro.locals.user;
+const { id } = Astro.params;
+---
+
+<Layout title="Editar página - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="pages" user={user} />
+    <PageEdit client:visible id={id} />
+  </div>
+</Layout>

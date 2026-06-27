@@ -1,0 +1,14 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import PagesList from '../../../components/admin/PagesList.jsx';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Páginas - Admin">
+  <div class="admin-layout">
+    <AdminSidebar currentPage="pages" user={user} />
+    <PagesList client:visible />
+  </div>
+</Layout>

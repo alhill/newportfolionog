@@ -176,7 +176,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     const allowedFields = [
       'title', 'innerTitle', 'slug', 'cliente', 'campaña', 'agencia', 'papel', 'description', 
       'copy', 'arte', 'thumb', 'headerImg', 'media', 'category', 'featured', 'order',
-      'width', 'height'
+      'width', 'height', 'seo'
     ];
 
     allowedFields.forEach(field => {
