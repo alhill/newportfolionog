@@ -1,4 +1,4 @@
-import { getServerEnvTrimmed, normalizeEnvValue } from './server-env';
+import { normalizeEnvValue } from './env-normalize';
 
 export const PUBLIC_ENV_KEYS = [
   'PUBLIC_FIREBASE_API_KEY',
@@ -19,17 +19,8 @@ declare global {
   }
 }
 
-const PUBLIC_ENV_ALIASES: Partial<Record<PublicEnvKey, readonly string[]>> = {
-  PUBLIC_FIREBASE_API_KEY: ['FIREBASE_API_KEY'],
-  PUBLIC_FIREBASE_AUTH_DOMAIN: ['FIREBASE_AUTH_DOMAIN'],
-  PUBLIC_FIREBASE_PROJECT_ID: ['FIREBASE_PROJECT_ID'],
-  PUBLIC_FIREBASE_STORAGE_BUCKET: ['FIREBASE_STORAGE_BUCKET'],
-  PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ['FIREBASE_MESSAGING_SENDER_ID'],
-  PUBLIC_FIREBASE_APP_ID: ['FIREBASE_APP_ID'],
-};
-
 /**
- * Static access so Vite can inline values at build time.
+ * Static access so Vite can inline values at build time / in `astro dev`.
  * Dynamic import.meta.env[key] is NOT replaced during production builds.
  */
 const BUILD_TIME_PUBLIC_ENV: PublicEnv = {
@@ -47,21 +38,16 @@ function readBuildTimeValue(key: PublicEnvKey): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? normalizeEnvValue(value) : undefined;
 }
 
-function readServerValue(key: PublicEnvKey): string | undefined {
-  const direct = getServerEnvTrimmed(key);
-  if (direct) {
-    return direct;
+/** Cloud Run runtime overrides for PUBLIC_* (normal env vars, not Secret Manager). */
+function readRuntimePublicValue(key: PublicEnvKey): string | undefined {
+  if (typeof process === 'undefined' || !process.env) {
+    return undefined;
   }
-
-  const aliases = PUBLIC_ENV_ALIASES[key] ?? [];
-  for (const alias of aliases) {
-    const aliasValue = getServerEnvTrimmed(alias);
-    if (aliasValue) {
-      return aliasValue;
-    }
+  const value = process.env[key];
+  if (value === undefined || value === '') {
+    return undefined;
   }
-
-  return undefined;
+  return normalizeEnvValue(value);
 }
 
 let cachedClientEnv: PublicEnv | null = null;
@@ -103,12 +89,15 @@ export function getClientPublicEnv(): PublicEnv {
   return cachedClientEnv;
 }
 
-/** Server-side: Cloud Run env vars override build-time values. */
+/**
+ * Server-side public config: Cloud Run process.env overrides, then Vite/Astro `.env`.
+ * Do not import server-env here — this module is also used from the browser bundle.
+ */
 export function getPublicEnv(): PublicEnv {
   const env: PublicEnv = {};
 
   for (const key of PUBLIC_ENV_KEYS) {
-    const value = readServerValue(key) ?? readBuildTimeValue(key);
+    const value = readRuntimePublicValue(key) ?? readBuildTimeValue(key);
     if (value) {
       env[key] = value;
     }
@@ -128,7 +117,7 @@ export function resolvePublicEnvValue(key: PublicEnvKey): string | undefined {
       return normalizeEnvValue(runtimeValue);
     }
   } else {
-    const serverValue = readServerValue(key);
+    const serverValue = readRuntimePublicValue(key);
     if (serverValue) {
       return serverValue;
     }

@@ -29,7 +29,7 @@ function initFirebaseAuth(): Auth {
 
   if (!firebaseConfig.apiKey) {
     throw new Error(
-      'Firebase client config is missing. Set PUBLIC_FIREBASE_* in Cloud Run environment variables.',
+      'Firebase client config is missing. Set PUBLIC_FIREBASE_* in `.env` (local) or Cloud Run env vars.',
     );
   }
 
