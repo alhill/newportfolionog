@@ -11,7 +11,7 @@
     "astro": "astro",
     "docker:build": "docker build -t portfolio-astro .",
     "docker:run": "docker run -p 8080:8080 --env-file .env portfolio-astro",
-    "deploy:cloudrun": "gcloud run deploy portfolio --source . --region europe-west1 --allow-unauthenticated"
+    "deploy:cloudrun": "node ./scripts/deploy-cloudrun.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.3",

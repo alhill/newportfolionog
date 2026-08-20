@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { checkRateLimit, getRemainingRequests } from '../../lib/rate-limit';
+import { getServerEnvTrimmed } from '../../lib/server-env';
 import { Resend } from 'resend';
 
 interface ContactFormData {
@@ -11,11 +12,17 @@ interface ContactFormData {
   honeypot: string; // Should be empty
 }
 
-const resend = new Resend(import.meta.env.RESEND_API_KEY);
+const resend = createResendClient();
+
+function createResendClient(): Resend | null {
+  const apiKey = getServerEnvTrimmed('RESEND_API_KEY');
+  return apiKey ? new Resend(apiKey) : null;
+}
 
 // Verify Turnstile token with Cloudflare
 async function verifyTurnstileToken(token: string): Promise<boolean> {
-  if (!import.meta.env.CLOUDFLARE_TURNSTILE_SECRET_KEY) {
+  const secretKey = getServerEnvTrimmed('CLOUDFLARE_TURNSTILE_SECRET_KEY');
+  if (!secretKey) {
     console.warn('CLOUDFLARE_TURNSTILE_SECRET_KEY not configured');
     return true; // Skip verification if not configured
   }
@@ -27,7 +34,7 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        secret: import.meta.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
+        secret: secretKey,
         response: token,
       }),
     });
@@ -116,9 +123,20 @@ export const POST: APIRoute = async (context) => {
     const message = body.message.trim().substring(0, 5000);
 
     // Send email using Resend
+    if (!resend) {
+      console.error('RESEND_API_KEY not configured');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'El formulario de contacto no está configurado.',
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const result = await resend.emails.send({
-      from: import.meta.env.RESEND_FROM_EMAIL || 'noreply@srtanognog.com',
-      to: import.meta.env.RESEND_TO_EMAIL || 'srtanognog@gmail.com',
+      from: getServerEnvTrimmed('RESEND_FROM_EMAIL') || 'noreply@srtanognog.com',
+      to: getServerEnvTrimmed('RESEND_TO_EMAIL') || 'srtanognog@gmail.com',
       replyTo: email,
       subject: `Nuevo mensaje de contacto: ${subject}`,
       html: `

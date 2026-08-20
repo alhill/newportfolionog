@@ -1,5 +1,6 @@
 import Cloudflare, { NotFoundError } from 'cloudflare';
 import type { Key } from 'cloudflare/resources/kv/namespaces/keys';
+import { getServerEnvTrimmed } from './server-env';
 
 export class KvNotConfiguredError extends Error {
   constructor() {
@@ -19,10 +20,10 @@ interface KvConfig {
 
 function readConfig(): Partial<KvConfig> {
   return {
-    accountId: import.meta.env.CLOUDFLARE_ACCOUNT_ID?.trim(),
-    apiToken: import.meta.env.CLOUDFLARE_API_TOKEN?.trim(),
-    namespaceId: import.meta.env.CLOUDFLARE_KV_NAMESPACE_ID?.trim(),
-    keyPrefix: import.meta.env.CLOUDFLARE_KV_KEY_PREFIX?.trim() ?? '',
+    accountId: getServerEnvTrimmed('CLOUDFLARE_ACCOUNT_ID'),
+    apiToken: getServerEnvTrimmed('CLOUDFLARE_API_TOKEN'),
+    namespaceId: getServerEnvTrimmed('CLOUDFLARE_KV_NAMESPACE_ID'),
+    keyPrefix: getServerEnvTrimmed('CLOUDFLARE_KV_KEY_PREFIX') ?? '',
   };
 }
 

@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import PublicEnvScript from '../components/PublicEnvScript.astro';
 import '../styles/admin.css';
 import { adminDb } from '../lib/firebase-admin';
 import { getRequestOrigin } from '../lib/request-origin';
@@ -144,6 +145,7 @@ const jsonLdScript = parseJsonLd(resolvedSeo.jsonLd);
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@200..900&display=swap" rel="stylesheet" />
 		<title>{resolvedTitle}</title>
+		<PublicEnvScript />
 		{jsonLdScript && <script type="application/ld+json" set:html={jsonLdScript}></script>}
 	</head>
 	<body>

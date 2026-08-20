@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { storage, db } from '../../../lib/firebase-admin';
+import { getServerEnvTrimmed } from '../../../lib/server-env';
 
 // POST - Subir archivo a Firebase Storage
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -53,7 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const filePath = `media/${mediaType}/${fileName}`;
 
     // Subir a Firebase Storage
-    const bucketName = import.meta.env.FIREBASE_STORAGE_BUCKET;
+    const bucketName = getServerEnvTrimmed('FIREBASE_STORAGE_BUCKET');
     if (!bucketName) {
       return new Response(
         JSON.stringify({ success: false, error: 'Storage bucket no configurado' }),

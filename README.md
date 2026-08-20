@@ -23,25 +23,33 @@ npm install
 
 ## Variables de entorno
 
-Usa como base `.env.example` y completa al menos las variables necesarias para tu entorno.
+Copia `.env.example` a `.env` (o `.env.local`). Hay dos grupos:
 
-Para el snapshot de redirecciones (build-time) son especialmente relevantes:
+### Build time (`PUBLIC_*`)
+
+También se pueden definir en **Cloud Run → Variables de entorno** (no en Secret Manager). El servidor las inyecta en cada página HTML, así que el admin y Turnstile funcionan sin depender solo del build.
+
+En local, `deploy:cloudrun` sigue pasando las `PUBLIC_*` de tu `.env` a Cloud Build como respaldo.
+
+- `PUBLIC_FIREBASE_*`
+- `PUBLIC_CLOUDFLARE_TURNSTILE_SITEKEY`
+
+### Runtime (secretos de servidor)
+
+Se leen con `process.env` al arrancar el contenedor. Configúralas en **Cloud Run → servicio `portfolio` → Edit & deploy → Variables & secrets** (o Secret Manager).
+
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_TO_EMAIL`
+- `CLOUDFLARE_TURNSTILE_SECRET_KEY`
+- `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_KV_NAMESPACE_ID`
+- `R2_*` (si usas R2)
+- `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET` (opcional en Cloud Run si el proyecto GCP coincide)
+
+En Cloud Run, Firebase Admin usa **Application Default Credentials** del service account del servicio. Solo necesitas `FIREBASE_SERVICE_ACCOUNT` en local.
+
+Para el snapshot de redirecciones (build-time) en local:
 
 - `FIREBASE_PROJECT_ID`
-- `FIREBASE_SERVICE_ACCOUNT` (JSON string) o `FIREBASE_ADMIN_SDK_KEY`
-
-Para contacto/captcha/email revisa tambien:
-
-- `RESEND_API_KEY`
-- `PUBLIC_CLOUDFLARE_TURNSTILE_SITEKEY`
-- `CLOUDFLARE_TURNSTILE_SECRET_KEY`
-
-Para integrar Cloudflare KV (p. ej. con otro administrador que comparta el mismo namespace):
-
-- `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN` (permiso *Workers KV Storage > Edit*)
-- `CLOUDFLARE_KV_NAMESPACE_ID`
-- `CLOUDFLARE_KV_KEY_PREFIX` (opcional, para prefijar claves en namespaces compartidos)
+- `FIREBASE_SERVICE_ACCOUNT` (JSON string) o credenciales ADC en GCP
 
 Uso en servidor:
 
@@ -145,17 +153,36 @@ Esto te permite probar un entorno mas cercano a produccion.
 
 ## Despliegue Cloud Run
 
-Script actual:
+### 1. Secretos en Cloud Run (una vez)
+
+Consola: **Cloud Run → portfolio → Edit & deploy new revision → Variables & secrets**
+
+Añade las variables de runtime listadas arriba (o referencias a Secret Manager).
+
+**Importante:** las `PUBLIC_FIREBASE_*` y `PUBLIC_CLOUDFLARE_TURNSTILE_SITEKEY` van como **variables de entorno normales** en Cloud Run (no como secrets). El admin las necesita en runtime.
+
+Ejemplo por CLI:
+
+```bash
+gcloud run services update portfolio \
+  --region europe-west1 \
+  --set-env-vars="PUBLIC_FIREBASE_API_KEY=xxx,PUBLIC_FIREBASE_AUTH_DOMAIN=portfolio-nog.firebaseapp.com,PUBLIC_FIREBASE_PROJECT_ID=portfolio-nog,PUBLIC_FIREBASE_STORAGE_BUCKET=portfolio-nog.firebasestorage.app,PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxx,PUBLIC_FIREBASE_APP_ID=xxx,PUBLIC_CLOUDFLARE_TURNSTILE_SITEKEY=xxx,RESEND_FROM_EMAIL=no-responder@tudominio.com,RESEND_TO_EMAIL=tu@email.com,FIREBASE_PROJECT_ID=portfolio-nog,FIREBASE_STORAGE_BUCKET=portfolio-nog.firebasestorage.app,CLOUDFLARE_ACCOUNT_ID=...,CLOUDFLARE_KV_NAMESPACE_ID=..."
+```
+
+### 2. Desplegar
+
+Con tu `.env` local (solo para las `PUBLIC_*` del build):
 
 ```bash
 bun run deploy:cloudrun
 ```
 
-Internamente ejecuta:
+El script pasa automáticamente las `PUBLIC_*` a Cloud Build y despliega el servicio. Los secretos de servidor **no** se suben: deben estar ya en Cloud Run.
 
-```bash
-gcloud run deploy portfolio --source . --region europe-west1 --allow-unauthenticated
-```
+Variables opcionales del script:
+
+- `CLOUD_RUN_REGION` (default: `europe-west1`)
+- `CLOUD_RUN_SERVICE` (default: `portfolio`)
 
 ## Troubleshooting rapido
 

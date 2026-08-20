@@ -8,6 +8,7 @@ import {
   type PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getServerEnvTrimmed } from './server-env';
 
 export class R2NotConfiguredError extends Error {
   constructor() {
@@ -29,12 +30,12 @@ interface R2Config {
 
 function readConfig(): Partial<R2Config> {
   return {
-    accountId: import.meta.env.CLOUDFLARE_ACCOUNT_ID?.trim(),
-    accessKeyId: import.meta.env.R2_ACCESS_KEY_ID?.trim(),
-    secretAccessKey: import.meta.env.R2_SECRET_ACCESS_KEY?.trim(),
-    bucketName: import.meta.env.R2_BUCKET_NAME?.trim(),
-    objectKeyPrefix: import.meta.env.R2_OBJECT_KEY_PREFIX?.trim() ?? '',
-    publicBaseUrl: import.meta.env.R2_PUBLIC_BASE_URL?.trim() ?? '',
+    accountId: getServerEnvTrimmed('CLOUDFLARE_ACCOUNT_ID'),
+    accessKeyId: getServerEnvTrimmed('R2_ACCESS_KEY_ID'),
+    secretAccessKey: getServerEnvTrimmed('R2_SECRET_ACCESS_KEY'),
+    bucketName: getServerEnvTrimmed('R2_BUCKET_NAME'),
+    objectKeyPrefix: getServerEnvTrimmed('R2_OBJECT_KEY_PREFIX') ?? '',
+    publicBaseUrl: getServerEnvTrimmed('R2_PUBLIC_BASE_URL') ?? '',
   };
 }
 
