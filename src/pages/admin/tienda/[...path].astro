@@ -1,0 +1,224 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import '../../../styles/store-admin.css';
+import ProductEditor from '../../../components/admin/store/ProductEditor';
+import InventoryAdmin from '../../../components/admin/store/InventoryAdmin';
+import ResourceAdmin from '../../../components/admin/store/ResourceAdmin';
+import OrderActions from '../../../components/admin/store/OrderActions';
+import PacklinkAdmin from '../../../components/admin/store/PacklinkAdmin';
+import CustomerPanel from '../../../components/admin/store/CustomerPanel';
+import SettingsAdmin from '../../../components/admin/store/SettingsAdmin';
+import PaymentsAdmin from '../../../components/admin/store/PaymentsAdmin';
+import PromotionsAdmin from '../../../components/admin/store/PromotionsAdmin';
+import { listProducts } from '../../../lib/store/products';
+import { getOrder, listOrders, listReturns } from '../../../lib/store/orders';
+import { refreshPacklinkShipment } from '../../../lib/store/packlink/shipments';
+import { getCustomer, listCustomers } from '../../../lib/store/customers';
+import { formatEuros } from '../../../lib/store/money';
+
+const user = Astro.locals.user;
+const segments = String(Astro.params.path || '').split('/').filter(Boolean);
+const section = segments[0] || '';
+const id = segments[1] ? decodeURIComponent(segments[1]) : '';
+
+const pageIds: Record<string, string> = {
+  productos: 'store-products',
+  variantes: 'store-variants',
+  categorias: 'store-categories',
+  inventario: 'store-inventory',
+  marcas: 'store-brands',
+  colecciones: 'store-collections',
+  pedidos: 'store-orders',
+  envios: 'store-packlink',
+  devoluciones: 'store-returns',
+  clientes: 'store-customers',
+  descuentos: 'store-discounts',
+  campanas: 'store-campaigns',
+  promociones: 'store-promos',
+  contenido: 'store-content',
+  menus: 'store-menus',
+  bloques: 'store-blocks',
+  seo: 'store-seo',
+  'formas-de-pago': 'store-payments',
+  configuracion: 'store-settings',
+};
+
+const resources: Record<string, string> = {
+  categorias: 'categories',
+  marcas: 'brands',
+  colecciones: 'collections',
+  descuentos: 'coupons',
+  campanas: 'campaigns',
+  contenido: 'pages',
+  menus: 'menus',
+  bloques: 'blocks',
+};
+
+let error = '';
+let products: Awaited<ReturnType<typeof listProducts>> = [];
+let orders: Awaited<ReturnType<typeof listOrders>> = [];
+let returns: Awaited<ReturnType<typeof listReturns>> = [];
+let customers: Awaited<ReturnType<typeof listCustomers>> = [];
+let order: Awaited<ReturnType<typeof getOrder>> = null;
+let customer: Awaited<ReturnType<typeof getCustomer>> = null;
+
+try {
+  if (section === 'productos' && !id) products = await listProducts({ admin: true, limit: 100 });
+  if (section === 'pedidos' && !id) orders = await listOrders();
+  if (section === 'pedidos' && id) {
+    order = await getOrder(id);
+    if (order?.packlink?.reference) {
+      try {
+        order = await refreshPacklinkShipment(order.id);
+      } catch {
+        // Se muestra el envío guardado si Packlink no responde.
+      }
+    }
+  }
+  if (section === 'devoluciones') returns = await listReturns();
+  if (section === 'clientes' && !id) customers = await listCustomers();
+  if (section === 'clientes' && id) customer = await getCustomer(id);
+} catch (loadError) {
+  error = loadError instanceof Error ? loadError.message : 'No se ha podido cargar la sección';
+}
+---
+
+<Layout title="Tienda - Admin">
+  <div class="admin-layout">
+    <AdminSidebar area="store" currentPage={pageIds[section] || 'store-dashboard'} user={user} />
+
+    {error && <main class="main-content"><p class="store-error">{error}</p></main>}
+
+    {!error && section === 'productos' && !id && (
+      <main class="main-content">
+        <div class="content-header">
+          <h1>Productos</h1>
+          <a class="btn btn-primary" href="/admin/tienda/productos/nuevo">+ Producto</a>
+        </div>
+        <div class="store-table-wrap">
+          <table class="store-table">
+            <thead>
+              <tr><th>Nombre</th><th>Precio base</th><th>Stock</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr>
+                  <td><a href={`/admin/tienda/productos/${product.id}`}>{product.name}</a></td>
+                  <td>{formatEuros(product.price)}</td>
+                  <td>{product.hasVariants ? 'Por variantes' : product.stock}</td>
+                  <td>{product.isActive ? 'Activo' : 'Oculto'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {products.length === 0 && <p class="empty">No hay productos.</p>}
+      </main>
+    )}
+
+    {!error && section === 'productos' && id === 'nuevo' && <ProductEditor client:load />}
+    {!error && section === 'productos' && id && id !== 'nuevo' && <ProductEditor client:load productId={id} />}
+
+    {!error && section === 'variantes' && <InventoryAdmin client:load source="variant" title="Variantes" />}
+    {!error && section === 'inventario' && <InventoryAdmin client:load />}
+
+    {!error && section === 'envios' && <PacklinkAdmin client:load />}
+
+    {!error && resources[section] && (
+      <ResourceAdmin client:load resource={resources[section]} />
+    )}
+
+    {!error && section === 'pedidos' && !id && (
+      <main class="main-content">
+        <div class="content-header"><h1>Pedidos</h1></div>
+        <div class="store-table-wrap">
+          <table class="store-table">
+            <thead>
+              <tr><th>Número</th><th>Cliente</th><th>Total</th><th>Pago</th><th>Preparación</th></tr>
+            </thead>
+            <tbody>
+              {orders.map((item) => (
+                <tr>
+                  <td><a href={`/admin/tienda/pedidos/${item.id}`}>{item.number}</a></td>
+                  <td>{item.customerName}</td>
+                  <td>{formatEuros(item.total)}</td>
+                  <td>{item.paymentStatus}</td>
+                  <td>{item.fulfillmentStatus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {orders.length === 0 && <p class="empty">No hay pedidos.</p>}
+      </main>
+    )}
+
+    {!error && section === 'pedidos' && id && order && <OrderActions client:load order={order} />}
+    {!error && section === 'pedidos' && id && !order && <main class="main-content"><p>Pedido no encontrado.</p></main>}
+
+    {!error && section === 'devoluciones' && (
+      <main class="main-content">
+        <div class="content-header"><h1>Devoluciones y reembolsos</h1></div>
+        <p class="store-note">Marcar una devolución como reembolsada devuelve el stock una sola vez, sobre la unidad que sigue siendo vendible.</p>
+        <div class="store-table-wrap">
+          <table class="store-table">
+            <thead>
+              <tr><th>Pedido</th><th>Estado</th><th>Pago</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              {returns.map((item) => (
+                <tr>
+                  <td><a href={`/admin/tienda/pedidos/${item.id}`}>{item.number}</a></td>
+                  <td>{item.returnStatus}</td>
+                  <td>{item.paymentStatus}</td>
+                  <td>{formatEuros(item.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {returns.length === 0 && <p class="empty">No hay devoluciones.</p>}
+      </main>
+    )}
+
+    {!error && section === 'clientes' && !id && (
+      <main class="main-content">
+        <div class="content-header"><h1>Clientes</h1></div>
+        <div class="store-table-wrap">
+          <table class="store-table">
+            <thead><tr><th>Nombre</th><th>Email</th></tr></thead>
+            <tbody>
+              {customers.map((item) => (
+                <tr>
+                  <td><a href={`/admin/tienda/clientes/${encodeURIComponent(item.id)}`}>{item.name || item.email}</a></td>
+                  <td>{item.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {customers.length === 0 && <p class="empty">Los clientes se crean al hacer un pedido.</p>}
+      </main>
+    )}
+
+    {!error && section === 'clientes' && id && customer && <CustomerPanel client:load record={customer} />}
+    {!error && section === 'clientes' && id && !customer && <main class="main-content"><p>Cliente no encontrado.</p></main>}
+
+    {!error && section === 'promociones' && (
+      <main class="main-content">
+        <div class="content-header"><h1>Destacados y banners</h1></div>
+        <PromotionsAdmin client:load />
+        <ResourceAdmin client:load resource="banners" embedded />
+      </main>
+    )}
+
+    {!error && section === 'seo' && <SettingsAdmin client:load mode="seo" />}
+    {!error && section === 'formas-de-pago' && <PaymentsAdmin client:load />}
+    {!error && section === 'configuracion' && <SettingsAdmin client:load />}
+
+    {!error && !pageIds[section] && (
+      <main class="main-content"><h1>Sección no encontrada</h1></main>
+    )}
+  </div>
+</Layout>

@@ -1,0 +1,100 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import StoreBar from '../../../components/store/StoreBar.astro';
+import '../../../styles/tienda.css';
+import { formatEuros } from '../../../lib/store/money';
+import { getOrderByPublicToken } from '../../../lib/store/orders';
+import { refreshOrderPaymentByToken } from '../../../lib/store/payments';
+
+const token = Astro.params.token || '';
+let order = await getOrderByPublicToken(token);
+if (order?.paymentStatus === 'pending' && order.paymentCheckoutId) {
+  try {
+    order = await refreshOrderPaymentByToken(token);
+  } catch {
+    // keep SSR snapshot if SumUp is unreachable
+  }
+}
+if (!order) Astro.response.status = 404;
+
+const paymentLabel = {
+  pending: 'Pendiente de pago',
+  paid: 'Pagado',
+  refunded: 'Reembolsado',
+  cancelled: 'Cancelado',
+}[order?.paymentStatus || 'pending'] || order?.paymentStatus;
+---
+
+<Layout title={order ? `Pedido ${order.number}` : 'Pedido'} seo={{ noIndex: true }}>
+  <div class="store-page">
+    <StoreBar />
+    {!order && <p>No encontramos este pedido.</p>}
+    {order && (
+      <>
+        <h1>Pedido {order.number}</h1>
+        <p>Estado del pago: {paymentLabel}</p>
+        {order.paymentStatus === 'paid' && (
+          <p class="store-copy">Gracias. El pago se ha recibido correctamente.</p>
+        )}
+        {order.paymentStatus === 'pending' && order.paymentUrl && (
+          <p class="store-copy">
+            <a class="store-inline-button" href={order.paymentUrl}>Pagar ahora</a>
+          </p>
+        )}
+        {order.paymentStatus === 'pending' && !order.paymentUrl && (
+          <p class="store-copy">El enlace de pago no está disponible. Contacta con la tienda.</p>
+        )}
+        <ul class="store-lines">
+          {order.items.map((item) => (
+            <li>
+              <span>{item.name} · {item.sku} · {item.quantity}</span>
+              <span>{formatEuros(item.lineTotal)}</span>
+            </li>
+          ))}
+        </ul>
+        <p>Total {formatEuros(order.total)}</p>
+        {order.returnStatus === 'none' && order.paymentStatus === 'paid' && (
+          <form class="store-return" id="return-form">
+            <h2>Solicitar devolución</h2>
+            <textarea name="message" rows="4" placeholder="Cuéntanos qué quieres devolver"></textarea>
+            <button class="store-inline-button" type="submit">Enviar solicitud</button>
+            <p id="return-result"></p>
+          </form>
+        )}
+        {order.returnStatus !== 'none' && <p>Devolución: {order.returnStatus}</p>}
+      </>
+    )}
+  </div>
+</Layout>
+
+<script define:vars={{ token, pending: order?.paymentStatus === 'pending' }}>
+  const form = document.getElementById('return-form');
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = new FormData(form).get('message');
+    const response = await fetch('/api/store/returns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicToken: token, message }),
+    });
+    const data = await response.json();
+    const result = document.getElementById('return-result');
+    if (result) result.textContent = data.success ? 'Solicitud registrada.' : (data.error || 'No se ha podido enviar');
+  });
+
+  if (pending && token) {
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/store/orders/by-token/${encodeURIComponent(token)}/payment`);
+        const data = await response.json();
+        if (data.success && data.data?.paymentStatus === 'paid') {
+          window.location.reload();
+        }
+      } catch {
+        // ignore transient errors
+      }
+    };
+    setTimeout(poll, 2000);
+    setTimeout(poll, 8000);
+  }
+</script>

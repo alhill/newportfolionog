@@ -1,0 +1,75 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StoreBar from '../../components/store/StoreBar.astro';
+import '../../styles/tienda.css';
+import { formatEuros } from '../../lib/store/money';
+import { getStorefront } from '../../lib/store/storefront';
+
+const categorySlug = Astro.url.searchParams.get('categoria');
+let storefront = null;
+let error = '';
+
+try {
+  storefront = await getStorefront(categorySlug);
+} catch (loadError) {
+  error = loadError instanceof Error ? loadError.message : 'No se ha podido abrir la tienda';
+}
+
+const title = storefront?.settings.seoTitle || storefront?.settings.name || 'Tienda';
+const description = storefront?.settings.seoDescription || 'Tienda';
+---
+
+<Layout title={title} description={description} seo={{ metaTitle: title, metaDescription: description, canonicalPath: '/tienda' }}>
+  <div class="store-page">
+    <StoreBar />
+    {error && <p class="store-message">{error}</p>}
+    {storefront && (
+      <>
+        <header class="store-hero">
+          <h1>{storefront.home?.title || storefront.settings.name || 'Tienda'}</h1>
+          {storefront.home?.body && <p class="store-copy">{storefront.home.body}</p>}
+        </header>
+
+        {storefront.banners.length > 0 && (
+          <div class="store-banners">
+            {storefront.banners.map((banner) => (
+              <a class="store-banner" href={banner.href || '/tienda'}>
+                {banner.imageUrl && <img src={banner.imageUrl} alt={banner.title || ''} />}
+                <span>{banner.title}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {storefront.blocks.map((block) => (
+          <section class="store-copy">
+            {block.name && <h2>{block.name}</h2>}
+            {block.body && <p>{block.body}</p>}
+          </section>
+        ))}
+
+        {storefront.categories.length > 0 && (
+          <nav class="store-cats">
+            <a href="/tienda" aria-current={!categorySlug ? 'page' : undefined}>Todo</a>
+            {storefront.categories.map((category) => (
+              <a href={`/tienda?categoria=${category.slug}`} aria-current={categorySlug === category.slug ? 'page' : undefined}>{category.name}</a>
+            ))}
+          </nav>
+        )}
+
+        <section class="store-grid">
+          {storefront.products.map((product) => (
+            <a class="store-card" href={`/tienda/${product.slug}`}>
+              {product.imageUrl && <img src={product.imageUrl} alt="" />}
+              <span class="store-card-body">
+                <strong>{product.name}</strong>
+                <span class="store-price">{formatEuros(product.price)}{product.hasVariants ? ' · desde' : ''}</span>
+              </span>
+            </a>
+          ))}
+        </section>
+        {storefront.products.length === 0 && <p>No hay productos publicados.</p>}
+      </>
+    )}
+  </div>
+</Layout>

@@ -1,0 +1,28 @@
+---
+---
+
+<div class="store-bar">
+  <a href="/tienda">Tienda</a>
+  <a href="/tienda/carrito" id="store-cart-link">Carrito</a>
+</div>
+
+<script>
+  function updateCartCount() {
+    const link = document.getElementById('store-cart-link');
+    if (!link) return;
+    let count = 0;
+    try {
+      const cart = JSON.parse(localStorage.getItem('tienda-cart') || '[]');
+      if (Array.isArray(cart)) {
+        count = cart.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+      }
+    } catch {
+      count = 0;
+    }
+    link.textContent = count > 0 ? `Carrito (${count})` : 'Carrito';
+  }
+
+  updateCartCount();
+  window.addEventListener('tienda-cart', updateCartCount);
+  window.addEventListener('storage', updateCartCount);
+</script>

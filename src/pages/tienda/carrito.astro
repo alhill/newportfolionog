@@ -1,0 +1,14 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StoreBar from '../../components/store/StoreBar.astro';
+import CartCheckout from '../../components/store/CartCheckout';
+import '../../styles/tienda.css';
+---
+
+<Layout title="Carrito" seo={{ noIndex: true, canonicalPath: '/tienda/carrito' }}>
+  <div class="store-page">
+    <StoreBar />
+    <h1>Carrito</h1>
+    <CartCheckout client:load />
+  </div>
+</Layout>

@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // La tienda se escribe solo desde el servidor, con Firebase Admin.
+    // Ese SDK no pasa por estas reglas. El cliente web solo usa Auth,
+    // así que cualquier acceso directo del SDK de cliente queda cerrado:
+    // no puede cambiar precio, stock, pedidos ni clientes.
+    match /products/{productId} {
+      allow read, write: if false;
+
+      match /variants/{variantId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if false;
+    }
+
+    match /customers/{customerId} {
+      allow read, write: if false;
+
+      match /notes/{noteId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /stockOperations/{operationId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

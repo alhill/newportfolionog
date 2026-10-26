@@ -1,0 +1,106 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminSidebar from '../../../components/admin/AdminSidebar.astro';
+import '../../../styles/store-admin.css';
+import { getStoreDashboard } from '../../../lib/store/dashboard';
+import { formatEuros } from '../../../lib/store/money';
+
+const user = Astro.locals.user;
+let dashboard = null;
+let error = '';
+
+try {
+  dashboard = await getStoreDashboard();
+} catch (loadError) {
+  error = loadError instanceof Error ? loadError.message : 'No se ha podido cargar el resumen';
+}
+
+const money = (cents: number | null) => (cents == null ? '—' : formatEuros(cents));
+---
+
+<Layout title="Tienda - Admin">
+  <div class="admin-layout">
+    <AdminSidebar area="store" currentPage="store-dashboard" user={user} />
+    <main class="main-content">
+      <div class="content-header">
+        <div>
+          <p class="store-kicker">Tienda</p>
+          <h1>Resumen</h1>
+        </div>
+        <a class="btn btn-secondary" href="/tienda">Ver tienda</a>
+      </div>
+      {error && <p class="store-error">{error}</p>}
+      {dashboard && (
+        <>
+          <section class="store-stats">
+            <article class="store-stat">
+              <span>Ventas pagadas</span>
+              <strong>{dashboard.sales ?? '—'}</strong>
+            </article>
+            <article class="store-stat">
+              <span>Ingresos</span>
+              <strong>{money(dashboard.revenue)}</strong>
+            </article>
+            <article class="store-stat">
+              <span>Pedidos pendientes de pago</span>
+              <strong>{dashboard.pendingOrders ?? '—'}</strong>
+            </article>
+            <article class="store-stat">
+              <span>Productos</span>
+              <strong>{dashboard.productCount ?? '—'}</strong>
+            </article>
+          </section>
+          <p class="store-note">Los ingresos son la suma en vivo de los pedidos con pago confirmado. No hay un contador guardado aparte.</p>
+
+          <section class="store-panel">
+            <h2>Poco stock</h2>
+            {dashboard.lowStockWarning && <p class="store-error">{dashboard.lowStockWarning}</p>}
+            {dashboard.lowStock.length === 0 ? (
+              <p>No hay unidades en o por debajo del umbral{dashboard.lowStockThreshold != null ? ` (${dashboard.lowStockThreshold})` : ''}.</p>
+            ) : (
+              <div class="store-table-wrap">
+                <table class="store-table">
+                  <thead>
+                    <tr><th>Producto</th><th>SKU</th><th>Stock</th></tr>
+                  </thead>
+                  <tbody>
+                    {dashboard.lowStock.map((item) => (
+                      <tr>
+                        <td><a href={`/admin/tienda/productos/${item.productId}`}>{item.productName || item.sku}</a></td>
+                        <td>{item.sku}</td>
+                        <td>{item.stock}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section class="store-panel">
+            <h2>Actividad reciente</h2>
+            {dashboard.recentOrders.length === 0 ? <p>Todavía no hay pedidos.</p> : (
+              <div class="store-table-wrap">
+                <table class="store-table">
+                  <thead>
+                    <tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Pago</th></tr>
+                  </thead>
+                  <tbody>
+                    {dashboard.recentOrders.map((order) => (
+                      <tr>
+                        <td><a href={`/admin/tienda/pedidos/${order.id}`}>{order.number}</a></td>
+                        <td>{order.customerName}</td>
+                        <td>{formatEuros(order.total)}</td>
+                        <td>{order.paymentStatus}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </main>
+  </div>
+</Layout>

@@ -1,0 +1,59 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StoreBar from '../../components/store/StoreBar.astro';
+import AddToCart from '../../components/store/AddToCart';
+import '../../styles/tienda.css';
+import { formatEuros } from '../../lib/store/money';
+import { getPublicProduct } from '../../lib/store/storefront';
+
+const slug = Astro.params.slug || '';
+const found = slug === 'carrito' || slug === 'pedido' ? null : await getPublicProduct(slug);
+
+if (!found) {
+  Astro.response.status = 404;
+}
+
+const product = found?.product;
+const title = product?.seoTitle || product?.name || 'Producto';
+const description = product?.seoDescription || product?.description || '';
+---
+
+<Layout
+  title={title}
+  description={description}
+  seo={{
+    metaTitle: title,
+    metaDescription: description,
+    ogImage: product?.images[0]?.url || '',
+    canonicalPath: product ? `/tienda/${product.slug}` : '/tienda',
+  }}
+>
+  <div class="store-page">
+    <StoreBar />
+    {!product && <p>Este producto no está disponible.</p>}
+    {product && (
+      <article class="store-product">
+        <div class="store-gallery">
+          {product.images.map((image) => <img src={image.url} alt={image.alt || product.name} />)}
+        </div>
+        <AddToCart client:load product={product} variants={found?.variants || []} />
+      </article>
+    )}
+    {found && found.related.length > 0 && (
+      <section class="store-related">
+        <h2>Relacionados</h2>
+        <div class="store-grid">
+          {found.related.map((item) => (
+            <a class="store-card" href={`/tienda/${item.slug}`}>
+              {item.imageUrl && <img src={item.imageUrl} alt="" />}
+              <span class="store-card-body">
+                <strong>{item.name}</strong>
+                <span class="store-price">{formatEuros(item.price)}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</Layout>
