@@ -1,0 +1,31 @@
+---
+import '../../styles/media-gallery.css';
+---
+
+<div class="lightbox" id="lightbox" hidden>
+  <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Cerrar">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <button type="button" class="lightbox-nav lightbox-nav-prev" id="lightbox-prev" aria-label="Imagen anterior">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+  <div class="lightbox-content" id="lightbox-content">
+    <img src="" alt="" class="lightbox-image" id="lightbox-image" draggable="false" />
+  </div>
+  <button type="button" class="lightbox-nav lightbox-nav-next" id="lightbox-next" aria-label="Siguiente imagen">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </button>
+</div>
+
+<script>
+  import { initMediaGallery } from '../../scripts/media-gallery.js';
+
+  initMediaGallery();
+</script>

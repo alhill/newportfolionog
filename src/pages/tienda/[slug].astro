@@ -2,6 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import StoreBar from '../../components/store/StoreBar.astro';
 import AddToCart from '../../components/store/AddToCart';
+import ImageGallery from '../../components/media/ImageGallery.astro';
+import MediaLightbox from '../../components/media/MediaLightbox.astro';
 import '../../styles/tienda.css';
 import { formatEuros } from '../../lib/store/money';
 import { getPublicProduct } from '../../lib/store/storefront';
@@ -32,13 +34,12 @@ const description = product?.seoDescription || product?.description || '';
     <StoreBar />
     {!product && <p>Este producto no está disponible.</p>}
     {product && (
-      <article class="store-product">
-        <div class="store-gallery">
-          {product.images.map((image) => <img src={image.url} alt={image.alt || product.name} />)}
-        </div>
+      <article class:list={['store-product', { 'store-product--solo': product.images.length === 0 }]}>
+        <ImageGallery images={product.images} alt={product.name} />
         <AddToCart client:load product={product} variants={found?.variants || []} />
       </article>
     )}
+    {product && product.images.length > 0 && <MediaLightbox />}
     {found && found.related.length > 0 && (
       <section class="store-related">
         <h2>Relacionados</h2>

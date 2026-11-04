@@ -2,11 +2,21 @@ import type { APIRoute } from 'astro';
 import { centsToEuros } from '../../../../lib/store/money';
 import { handleStoreError, json, readJson, requireAdmin } from '../../../../lib/store/http';
 import { presentProduct } from '../../../../lib/store/present';
-import { createProduct, listProducts } from '../../../../lib/store/products';
+import { createProduct, listProducts, listProductsByGroup } from '../../../../lib/store/products';
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
     const admin = Boolean(locals.user);
+    const groupId = url.searchParams.get('groupId') || '';
+    if (groupId) {
+      const unauthorized = requireAdmin(locals);
+      if (unauthorized) return unauthorized;
+      const grouped = await listProductsByGroup(groupId);
+      return json({
+        success: true,
+        data: grouped.map((item) => ({ ...item, priceEuros: centsToEuros(item.price) })),
+      });
+    }
     const data = await listProducts({
       admin,
       limit: Number(url.searchParams.get('limit') || 60),
@@ -15,7 +25,14 @@ export const GET: APIRoute = async ({ url, locals }) => {
     });
     return json({
       success: true,
-      data: data.map((item) => ({ ...item, priceEuros: centsToEuros(item.price) })),
+      data: data.map((item) => {
+        const { groupId, ...rest } = item;
+        return {
+          ...rest,
+          ...(admin ? { groupId } : {}),
+          priceEuros: centsToEuros(item.price),
+        };
+      }),
     });
   } catch (error) {
     return handleStoreError(error);

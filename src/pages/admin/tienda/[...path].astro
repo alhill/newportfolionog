@@ -11,7 +11,8 @@ import CustomerPanel from '../../../components/admin/store/CustomerPanel';
 import SettingsAdmin from '../../../components/admin/store/SettingsAdmin';
 import PaymentsAdmin from '../../../components/admin/store/PaymentsAdmin';
 import PromotionsAdmin from '../../../components/admin/store/PromotionsAdmin';
-import { listProducts } from '../../../lib/store/products';
+import { arrangeCatalog } from '../../../lib/store/groups';
+import { listAdminCatalog } from '../../../lib/store/products';
 import { getOrder, listOrders, listReturns } from '../../../lib/store/orders';
 import { refreshPacklinkShipment } from '../../../lib/store/packlink/shipments';
 import { getCustomer, listCustomers } from '../../../lib/store/customers';
@@ -22,9 +23,12 @@ const segments = String(Astro.params.path || '').split('/').filter(Boolean);
 const section = segments[0] || '';
 const id = segments[1] ? decodeURIComponent(segments[1]) : '';
 
+if (section === 'variantes') {
+  return Astro.redirect('/admin/tienda/productos');
+}
+
 const pageIds: Record<string, string> = {
   productos: 'store-products',
-  variantes: 'store-variants',
   categorias: 'store-categories',
   inventario: 'store-inventory',
   marcas: 'store-brands',
@@ -56,7 +60,7 @@ const resources: Record<string, string> = {
 };
 
 let error = '';
-let products: Awaited<ReturnType<typeof listProducts>> = [];
+let catalog: Awaited<ReturnType<typeof listAdminCatalog>> = [];
 let orders: Awaited<ReturnType<typeof listOrders>> = [];
 let returns: Awaited<ReturnType<typeof listReturns>> = [];
 let customers: Awaited<ReturnType<typeof listCustomers>> = [];
@@ -64,7 +68,7 @@ let order: Awaited<ReturnType<typeof getOrder>> = null;
 let customer: Awaited<ReturnType<typeof getCustomer>> = null;
 
 try {
-  if (section === 'productos' && !id) products = await listProducts({ admin: true, limit: 100 });
+  if (section === 'productos' && !id) catalog = await listAdminCatalog(100);
   if (section === 'pedidos' && !id) orders = await listOrders();
   if (section === 'pedidos' && id) {
     order = await getOrder(id);
@@ -82,6 +86,8 @@ try {
 } catch (loadError) {
   error = loadError instanceof Error ? loadError.message : 'No se ha podido cargar la sección';
 }
+
+const catalogBlocks = arrangeCatalog(catalog);
 ---
 
 <Layout title="Tienda - Admin">
@@ -96,31 +102,80 @@ try {
           <h1>Productos</h1>
           <a class="btn btn-primary" href="/admin/tienda/productos/nuevo">+ Producto</a>
         </div>
-        <div class="store-table-wrap">
-          <table class="store-table">
-            <thead>
-              <tr><th>Nombre</th><th>Precio base</th><th>Stock</th><th>Estado</th></tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr>
-                  <td><a href={`/admin/tienda/productos/${product.id}`}>{product.name}</a></td>
-                  <td>{formatEuros(product.price)}</td>
-                  <td>{product.hasVariants ? 'Por variantes' : product.stock}</td>
-                  <td>{product.isActive ? 'Activo' : 'Oculto'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p class="store-note">
+          Cada ficha es un producto, por ejemplo un color. Las tallas van dentro.
+          Los colores del mismo modelo se muestran juntos y cada uno sigue en este listado.
+        </p>
+        <div class="catalog-list">
+          {catalogBlocks.map((block) => {
+            const grouped = block.kind === 'group';
+            const items = grouped ? block.products : [block.product];
+            return (
+              <section class={grouped ? 'catalog-group' : 'catalog-single'}>
+                {grouped && (
+                  <header class="catalog-group-head">
+                    <p class="store-kicker">Mismo modelo</p>
+                    <p>{items.length} productos de este modelo.</p>
+                  </header>
+                )}
+                {items.map((product) => {
+                  const siblings = items.filter((item) => item.id !== product.id);
+                  return (
+                    <article class="catalog-product">
+                      <div class="catalog-product-top">
+                        <a href={`/admin/tienda/productos/${product.id}`}>
+                          {product.imageUrl && <img src={product.imageUrl} alt="" />}
+                          <span>{product.name}</span>
+                        </a>
+                        <span>{formatEuros(product.price)}{product.hasVariants ? ' · desde' : ''}</span>
+                        <span class="catalog-status">{product.isActive ? 'Activo' : 'Oculto'}</span>
+                      </div>
+                      {product.hasVariants ? (
+                        <div class="catalog-variants">
+                          <p>Variantes</p>
+                          {product.variants.length === 0 ? (
+                            <p class="catalog-meta">Todavía no hay variantes.</p>
+                          ) : (
+                            <ul>
+                              {product.variants.map((variant) => (
+                                <li>
+                                  <span>{variant.label}</span>
+                                  <span>{variant.sku}</span>
+                                  <span>Stock {variant.stock}</span>
+                                  {!variant.isActive && <span>Oculta</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ) : (
+                        <p class="catalog-meta">Sin variantes · {product.sku || 'sin SKU'} · stock {product.stock ?? 0}</p>
+                      )}
+                      {siblings.length > 0 && (
+                        <p class="catalog-siblings">
+                          Otros colores:
+                          {siblings.map((item) => (
+                            <a href={`/admin/tienda/productos/${item.id}`}>{item.name}</a>
+                          ))}
+                        </p>
+                      )}
+                      {!grouped && product.groupId && (
+                        <p class="catalog-meta">Este producto está en un modelo, pero no hay otros colores en el listado.</p>
+                      )}
+                    </article>
+                  );
+                })}
+              </section>
+            );
+          })}
         </div>
-        {products.length === 0 && <p class="empty">No hay productos.</p>}
+        {catalog.length === 0 && <p class="empty">No hay productos.</p>}
       </main>
     )}
 
     {!error && section === 'productos' && id === 'nuevo' && <ProductEditor client:load />}
     {!error && section === 'productos' && id && id !== 'nuevo' && <ProductEditor client:load productId={id} />}
 
-    {!error && section === 'variantes' && <InventoryAdmin client:load source="variant" title="Variantes" />}
     {!error && section === 'inventario' && <InventoryAdmin client:load />}
 
     {!error && section === 'envios' && <PacklinkAdmin client:load />}

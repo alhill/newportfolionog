@@ -1,6 +1,7 @@
 import { adminDb } from '../firebase-admin';
 import type { Product, Variant } from '../../types/store';
 import { isIndexError } from './http';
+import { storeMenuLinks } from './nav';
 import { getProduct, listProducts, mapProduct, toListItem } from './products';
 import { getStoreSettings } from './settings';
 
@@ -28,6 +29,11 @@ async function safeDocs(collection: string, limit = 20) {
     if (!isIndexError(error)) console.error(error);
     return [] as LooseDoc[];
   }
+}
+
+export async function getStoreMenu() {
+  const categories = await safeDocs('storeCategories', 40);
+  return storeMenuLinks(categories);
 }
 
 export async function getStorefront(categorySlug?: string | null) {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { adminDb } from '../firebase-admin';
-import type { Product, ProductListItem, ProductRecord, StoreImage, Variant, VariantRecord } from '../../types/store';
+import type { AdminCatalogProduct, Product, ProductListItem, ProductRecord, StoreImage, Variant, VariantRecord } from '../../types/store';
 import { StoreError } from './errors';
 import { isIndexError } from './http';
 import { eurosToCents } from './money';
@@ -122,8 +122,14 @@ export function toListItem(product: Product): ProductListItem {
     categoryId: product.categoryId,
     brandId: product.brandId,
     imageUrl: product.images[0]?.url || null,
+    groupId: product.groupId,
     updatedAt: product.updatedAt,
   };
+}
+
+function variantLabel(attributes: Record<string, string>, sku: string) {
+  const label = Object.entries(attributes).map(([key, value]) => `${key}: ${value}`).join(' · ');
+  return label || sku || 'Variante';
 }
 
 export async function suggestUniqueSlug(base: string, excludeId?: string) {
@@ -422,6 +428,62 @@ export async function listProducts(options: { admin?: boolean; limit?: number; c
   if (options.categoryId) items = items.filter((item) => item.categoryId === options.categoryId);
   items.sort((a, b) => a.name.localeCompare(b.name, 'es'));
   return items.slice(0, limit).map(toListItem);
+}
+
+export async function listProductsByGroup(groupId: string) {
+  const id = asString(groupId).replace(/\//g, '').slice(0, 80);
+  if (!id) return [];
+  const snapshot = await products().where('groupId', '==', id).limit(100).get();
+  return snapshot.docs
+    .map((doc) => mapProduct(doc.id, doc.data()))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    .map(toListItem);
+}
+
+export async function listAdminCatalog(limit = 100): Promise<AdminCatalogProduct[]> {
+  const capped = Math.min(Math.max(limit, 1), 100);
+  const snapshot = await products().orderBy('updatedAt', 'desc').limit(capped).get();
+  const records = snapshot.docs.map((doc) => mapProduct(doc.id, doc.data()));
+  records.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+  return Promise.all(records.map(async (product) => {
+    let variants: AdminCatalogProduct['variants'] = [];
+    if (product.hasVariants) {
+      const variantsSnap = await products().doc(product.id).collection('variants').get();
+      variants = variantsSnap.docs
+        .map((doc) => mapVariant(doc.id, product.id, doc.data()))
+        .sort((a, b) => a.sku.localeCompare(b.sku, 'es'))
+        .map((variant) => ({
+          id: variant.id,
+          label: variantLabel(variant.attributes, variant.sku),
+          sku: variant.sku,
+          stock: variant.stock,
+          isActive: variant.isActive,
+        }));
+    }
+
+    return {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      hasVariants: product.hasVariants,
+      sku: product.sku,
+      stock: product.stock,
+      isActive: product.isActive,
+      groupId: product.groupId,
+      imageUrl: product.images[0]?.url || null,
+      variants,
+    };
+  }));
+}
+
+export async function setProductGroup(id: string, groupId: unknown) {
+  const ref = products().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) throw new StoreError('Producto no encontrado', 404);
+  const normalized = asString(groupId).replace(/\//g, '').slice(0, 80) || null;
+  await ref.update({ groupId: normalized, updatedAt: nowIso() });
+  return normalized;
 }
 
 export async function getProduct(idOrSlug: string, options: { includeVariants?: boolean } = {}) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import MediaPicker from '../MediaPicker';
 import { validateProductForm } from '../../../lib/store/product-form';
 import { storeApi } from './api';
+import ProductGroupField from './ProductGroupField';
 import ProductPicker from './ProductPicker';
 
 const VALIDATION_MESSAGE = 'Revisa los campos marcados.';
@@ -467,17 +468,12 @@ export default function ProductEditor({ productId = '' }) {
               </select>
             </Field>
           </div>
-          <div class="store-grid-2">
-            <Field id="product-brand" label="Marca">
-              <select id="product-brand" value={product.brandId} onChange={(event) => setField('brandId', event.currentTarget.value)}>
-                <option value="">Sin marca</option>
-                {catalog.brands.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
-              </select>
-            </Field>
-            <Field id="product-group" label="ID de grupo" hint="Opcional. Relaciona modelos distintos. No crea una colección de grupos ni convierte el producto en variantes.">
-              <input id="product-group" type="text" value={product.groupId} onInput={(event) => setField('groupId', event.currentTarget.value)} />
-            </Field>
-          </div>
+          <Field id="product-brand" label="Marca">
+            <select id="product-brand" value={product.brandId} onChange={(event) => setField('brandId', event.currentTarget.value)}>
+              <option value="">Sin marca</option>
+              {catalog.brands.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
+            </select>
+          </Field>
           <div class="form-group">
             <label>Colecciones</label>
             <div class="store-checks">
@@ -506,6 +502,15 @@ export default function ProductEditor({ productId = '' }) {
             <input type="checkbox" checked={product.featured} onChange={(event) => setField('featured', event.currentTarget.checked)} />
             Destacado
           </label>
+        </section>
+
+        <section class="store-panel">
+          <h2>Mismo modelo</h2>
+          <ProductGroupField
+            productId={productId}
+            groupId={product.groupId}
+            onChange={(groupId) => setField('groupId', groupId)}
+          />
         </section>
 
         <section class="store-panel">
@@ -587,7 +592,8 @@ export default function ProductEditor({ productId = '' }) {
         </section>
 
         <section class="store-panel">
-          <h2>Unidades vendibles</h2>
+          <h2>Variantes</h2>
+          <p class="store-note">Las tallas u otras opciones de este producto. Se ven dentro de la ficha y no salen como productos en el listado.</p>
           {isNew ? (
             <label class="store-checkline">
               <input type="checkbox" checked={hasVariants} onChange={(event) => setHasVariants(event.currentTarget.checked)} />
@@ -596,8 +602,8 @@ export default function ProductEditor({ productId = '' }) {
           ) : (
             <p class="store-note">
               {hasVariants
-                ? 'El SKU y el stock están en las variantes. El producto padre no se vende.'
-                : 'Producto simple: el SKU y el stock están en esta ficha.'}
+                ? 'El SKU y el stock están en cada variante. El producto no se vende por separado.'
+                : 'Sin variantes: el SKU y el stock están en esta ficha.'}
             </p>
           )}
 

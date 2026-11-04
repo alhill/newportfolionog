@@ -1,0 +1,48 @@
+---
+interface GalleryImage {
+  url: string;
+  alt?: string;
+}
+
+interface Props {
+  images: Array<string | GalleryImage>;
+  alt?: string;
+}
+
+const { images, alt = '' } = Astro.props;
+
+const slides = images
+  .map((image) => {
+    if (typeof image === 'string') return { url: image, alt };
+    return { url: image.url, alt: image.alt || alt };
+  })
+  .filter((image) => image.url.trim());
+
+const first = slides[0];
+---
+
+{first && (
+  <div
+    class:list={['gallery-container', { 'is-single': slides.length <= 1 }]}
+    data-gallery={JSON.stringify(slides)}
+    role="region"
+    aria-roledescription="carrusel"
+    aria-label="Galería de imágenes"
+  >
+    <div class="gallery-viewer">
+      <button type="button" class="gallery-nav gallery-nav-prev" aria-label="Imagen anterior">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="gallery-open" aria-label={first.alt ? `Ver en grande: ${first.alt}` : 'Ver imagen en grande'}>
+        <img src={first.url} alt={first.alt} class="gallery-current-image" draggable="false" />
+      </button>
+      <button type="button" class="gallery-nav gallery-nav-next" aria-label="Siguiente imagen">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+)}

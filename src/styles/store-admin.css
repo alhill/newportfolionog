@@ -428,6 +428,131 @@
   }
 }
 
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.catalog-group,
+.catalog-single {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.catalog-group {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.9rem;
+}
+
+.catalog-group-head p {
+  margin: 0;
+  color: #64748b;
+}
+
+.catalog-product {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.catalog-product-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.catalog-product-top a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  color: #1e293b;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.catalog-product-top img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.catalog-status,
+.catalog-meta,
+.catalog-variants > p,
+.catalog-siblings {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.catalog-meta,
+.catalog-variants > p,
+.catalog-siblings {
+  margin: 0.75rem 0 0;
+}
+
+.catalog-variants ul,
+.catalog-members {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+}
+
+.catalog-variants li,
+.catalog-members a {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-top: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.catalog-members {
+  margin-bottom: 1rem;
+}
+
+.catalog-members a {
+  grid-template-columns: auto minmax(0, 1fr);
+  color: #1e293b;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.catalog-members img,
+.catalog-members .store-related-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.catalog-members small {
+  display: block;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.catalog-siblings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.catalog-siblings a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+
 @media (max-width: 720px) {
   .store-image-row {
     grid-template-columns: auto 72px minmax(0, 1fr);
@@ -435,5 +560,15 @@
 
   .store-image-actions {
     grid-column: 1 / -1;
+  }
+
+  .catalog-product-top,
+  .catalog-variants li {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .catalog-variants li {
+    grid-template-columns: 1fr 1fr;
   }
 }

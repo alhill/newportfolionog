@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { handleStoreError, json, readJson, requireAdmin } from '../../../../lib/store/http';
 import { presentProduct } from '../../../../lib/store/present';
-import { deleteProduct, getProduct, setFeatured, updateProduct } from '../../../../lib/store/products';
+import { deleteProduct, getProduct, setFeatured, setProductGroup, updateProduct } from '../../../../lib/store/products';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   try {
@@ -32,8 +32,14 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   try {
     const body = await readJson(request);
     const id = params.id || '';
-    if (Object.keys(body).every((key) => key === 'featured')) {
+    const keys = Object.keys(body);
+    if (keys.length === 1 && keys[0] === 'featured') {
       await setFeatured(id, body.featured === true);
+      const found = await getProduct(id, { includeVariants: true });
+      return json({ success: true, data: found ? presentProduct(found.product, found.variants) : null });
+    }
+    if (keys.length === 1 && keys[0] === 'groupId') {
+      await setProductGroup(id, body.groupId);
       const found = await getProduct(id, { includeVariants: true });
       return json({ success: true, data: found ? presentProduct(found.product, found.variants) : null });
     }

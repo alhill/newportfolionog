@@ -80,7 +80,29 @@ export interface ProductListItem {
   categoryId: string | null;
   brandId: string | null;
   imageUrl: string | null;
+  groupId: string | null;
   updatedAt: string;
+}
+
+export interface AdminCatalogVariant {
+  id: string;
+  label: string;
+  sku: string;
+  stock: number;
+  isActive: boolean;
+}
+
+export interface AdminCatalogProduct {
+  id: string;
+  name: string;
+  price: number;
+  hasVariants: boolean;
+  sku: string | null;
+  stock: number | null;
+  isActive: boolean;
+  groupId: string | null;
+  imageUrl: string | null;
+  variants: AdminCatalogVariant[];
 }
 
 export interface InventoryItem {
