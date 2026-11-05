@@ -1,14 +1,22 @@
 ---
 import { getStoreMenu } from '../../lib/store/storefront';
 
-const links = await getStoreMenu();
+const menu = await getStoreMenu();
 const pathname = Astro.url.pathname !== '/' ? Astro.url.pathname.replace(/\/+$/, '') : '/';
 const category = Astro.url.searchParams.get('categoria');
 
 function isCurrent(href: string) {
-  if (href === '/tienda') return pathname === '/tienda' && !category;
-  if (href.startsWith('/tienda?categoria=')) return pathname === '/tienda' && category === href.slice('/tienda?categoria='.length);
-  return pathname === href;
+  let url: URL;
+  try {
+    url = new URL(href, Astro.url.origin);
+  } catch {
+    return false;
+  }
+  if (url.origin !== Astro.url.origin) return false;
+  const path = url.pathname !== '/' ? url.pathname.replace(/\/+$/, '') : '/';
+  if (path !== pathname) return false;
+  if (path === '/tienda') return (url.searchParams.get('categoria') || '') === (category || '');
+  return url.searchParams.toString() === Astro.url.searchParams.toString();
 }
 ---
 
@@ -28,9 +36,16 @@ function isCurrent(href: string) {
 
 <aside id="sideMenu" class="side-menu">
   <nav class="menu-nav">
-    {links.map((link) => (
-      <a href={link.href} class="menu-item" aria-current={isCurrent(link.href) ? 'page' : undefined}>{link.label}</a>
-    ))}
+    <div class="menu-group">
+      {menu.top.map((link) => (
+        <a href={link.href} class="menu-item" aria-current={isCurrent(link.href) ? 'page' : undefined}>{link.label}</a>
+      ))}
+    </div>
+    <div class="menu-group">
+      {menu.bottom.map((link) => (
+        <a href={link.href} class="menu-item" aria-current={isCurrent(link.href) ? 'page' : undefined}>{link.label}</a>
+      ))}
+    </div>
   </nav>
 </aside>
 
@@ -159,6 +174,7 @@ function isCurrent(href: string) {
     right: 0;
     width: 240px;
     height: 100vh;
+    box-sizing: border-box;
     background: #1d1d1d;
     z-index: 102;
     padding: 34px;
@@ -166,6 +182,8 @@ function isCurrent(href: string) {
     transform: translateX(240px);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   :global(body.menu-open) .side-menu {
@@ -173,10 +191,21 @@ function isCurrent(href: string) {
   }
 
   .menu-nav {
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 0;
-    align-items: flex-start;
+    width: 100%;
+  }
+
+  .menu-group + .menu-group {
+    margin-top: auto;
+    padding-top: 1.5rem;
+  }
+
+  .menu-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 
   .menu-item {

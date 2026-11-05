@@ -1,0 +1,36 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import StoreBar from '../../../components/store/StoreBar.astro';
+import '../../../styles/tienda.css';
+import { getPublishedLanding } from '../../../lib/store/menu-data';
+
+const slug = Astro.params.slug || '';
+if (slug === 'inicio') return Astro.redirect('/tienda');
+
+const page = await getPublishedLanding(slug);
+if (!page) Astro.response.status = 404;
+
+const title = page?.seoTitle || page?.title || 'Página';
+const description = page?.seoDescription || '';
+---
+
+<Layout
+  title={title}
+  description={description}
+  seo={{
+    metaTitle: title,
+    metaDescription: description,
+    canonicalPath: page ? `/tienda/pagina/${page.slug}` : '/tienda',
+  }}
+>
+  <div class="store-page">
+    <StoreBar />
+    {!page && <p>Esta página no está disponible.</p>}
+    {page && (
+      <header class="store-hero">
+        <h1>{page.title}</h1>
+        {page.body && <p class="store-copy">{page.body}</p>}
+      </header>
+    )}
+  </div>
+</Layout>

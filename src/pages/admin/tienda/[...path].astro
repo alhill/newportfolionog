@@ -11,6 +11,7 @@ import CustomerPanel from '../../../components/admin/store/CustomerPanel';
 import SettingsAdmin from '../../../components/admin/store/SettingsAdmin';
 import PaymentsAdmin from '../../../components/admin/store/PaymentsAdmin';
 import PromotionsAdmin from '../../../components/admin/store/PromotionsAdmin';
+import MenuAdmin from '../../../components/admin/store/MenuAdmin';
 import { arrangeCatalog } from '../../../lib/store/groups';
 import { listAdminCatalog } from '../../../lib/store/products';
 import { getOrder, listOrders, listReturns } from '../../../lib/store/orders';
@@ -27,6 +28,10 @@ if (section === 'variantes') {
   return Astro.redirect('/admin/tienda/productos');
 }
 
+if (section === 'menus') {
+  return Astro.redirect('/admin/tienda/menu');
+}
+
 const pageIds: Record<string, string> = {
   productos: 'store-products',
   categorias: 'store-categories',
@@ -41,7 +46,7 @@ const pageIds: Record<string, string> = {
   campanas: 'store-campaigns',
   promociones: 'store-promos',
   contenido: 'store-content',
-  menus: 'store-menus',
+  menu: 'store-menu',
   bloques: 'store-blocks',
   seo: 'store-seo',
   'formas-de-pago': 'store-payments',
@@ -55,7 +60,6 @@ const resources: Record<string, string> = {
   descuentos: 'coupons',
   campanas: 'campaigns',
   contenido: 'pages',
-  menus: 'menus',
   bloques: 'blocks',
 };
 
@@ -179,6 +183,8 @@ const catalogBlocks = arrangeCatalog(catalog);
     {!error && section === 'inventario' && <InventoryAdmin client:load />}
 
     {!error && section === 'envios' && <PacklinkAdmin client:load />}
+
+    {!error && section === 'menu' && <MenuAdmin client:load />}
 
     {!error && resources[section] && (
       <ResourceAdmin client:load resource={resources[section]} />

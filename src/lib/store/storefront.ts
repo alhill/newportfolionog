@@ -1,7 +1,7 @@
 import { adminDb } from '../firebase-admin';
 import type { Product, Variant } from '../../types/store';
 import { isIndexError } from './http';
-import { storeMenuLinks } from './nav';
+import { getPublicStoreMenu } from './menu-data';
 import { getProduct, listProducts, mapProduct, toListItem } from './products';
 import { getStoreSettings } from './settings';
 
@@ -32,19 +32,17 @@ async function safeDocs(collection: string, limit = 20) {
 }
 
 export async function getStoreMenu() {
-  const categories = await safeDocs('storeCategories', 40);
-  return storeMenuLinks(categories);
+  return getPublicStoreMenu();
 }
 
 export async function getStorefront(categorySlug?: string | null) {
-  const [settings, categories, brands, banners, blocks, pages, menus] = await Promise.all([
+  const [settings, categories, brands, banners, blocks, pages] = await Promise.all([
     getStoreSettings(),
     safeDocs('storeCategories', 40),
     safeDocs('storeBrands', 40),
     safeDocs('storeBanners', 8),
     safeDocs('storeBlocks', 12),
     adminDb.collection('storePages').where('published', '==', true).limit(20).get().then((snap) => snap.docs.map(toLooseDoc)).catch(() => [] as LooseDoc[]),
-    safeDocs('storeMenus', 10),
   ]);
 
   const category = categorySlug
@@ -66,7 +64,6 @@ export async function getStorefront(categorySlug?: string | null) {
     blocks: blocks
       .filter((block) => !block.slot || block.slot === 'home')
       .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0)),
-    menus,
     home,
     category,
     products,
